@@ -112,18 +112,42 @@ export function drawField() {
 }
 export function clearPaint() { pctx.clearRect(0, 0, W, H); }
 
-// A paint splat: a core blob, lobes around it, a streak in the direction the ball was flying, and flecks.
+// Visual-only randomness. Splats are drawn during the simulation, so they must take exactly the same numbers from
+// Math.random as before (same count, same order) or every later bot decision would shift. Extra detail uses vr().
+const vr = mulberry32(20261112), vrand = (a, b) => a + vr() * (b - a);
+const onBunker = (x, y) => OBST.some(o => o.t === 'rect'
+  ? x > o.x - 2 && x < o.x + o.w + 2 && y > o.y - 2 && y < o.y + o.h + 2
+  : Math.hypot(x - o.x, y - o.y) < o.r + 2);
+function blob(c, x, y, rx, ry, a) { c.beginPath(); c.ellipse(x, y, rx, ry, a, 0, TAU); c.fill(); }
+
+// A paint splat: a core blob, lobes around it, tapered streaks in the direction the ball was flying, flecks, and a
+// fine spray. On grass the paint soaks in (darker, softer edge); on a bunker it stays glossy.
 export function splat(x, y, team, size, ang = rand(0, TAU)) {
-  const c = pctx, T = TEAMS[team];
-  c.fillStyle = hexA(T.dark, 0.5); circle(c, x + 0.9, y + 1.1, size * 0.7);   // darker edge gives the paint some depth
-  c.fillStyle = T.color;
-  circle(c, x, y, size * 0.62);
-  const n = 5 + Math.floor(Math.random() * 4);
-  for (let i = 0; i < n; i++) { const a = rand(0, TAU), d = size * rand(0.35, 0.8); circle(c, x + Math.cos(a) * d, y + Math.sin(a) * d, size * rand(0.18, 0.46)); }
-  const m = 3 + Math.floor(Math.random() * 3);
-  for (let i = 0; i < m; i++) { const s = rand(-0.25, 0.25), d = size * (0.6 + i * 0.38 + rand(0, 0.3)); circle(c, x + Math.cos(ang + s) * d, y + Math.sin(ang + s) * d, size * 0.16 * (1 - i / (m + 1)) + 0.8); }
-  for (let i = 0; i < 6; i++) { const a = rand(0, TAU), d = size * rand(1, 1.9); circle(c, x + Math.cos(a) * d, y + Math.sin(a) * d, rand(0.8, 2.2)); }
-  c.fillStyle = T.light; c.globalAlpha = 0.5; circle(c, x - size * 0.18, y - size * 0.2, size * 0.17); c.globalAlpha = 1;
+  const c = pctx, T = TEAMS[team], hard = onBunker(x, y), s = size * (hard ? 1.25 : 1.15);
+  // the random numbers, drawn in the original order
+  const lobes = [], n = 5 + Math.floor(Math.random() * 4);
+  for (let i = 0; i < n; i++) { const a = rand(0, TAU), d = s * rand(0.35, 0.8); lobes.push([x + Math.cos(a) * d, y + Math.sin(a) * d, s * rand(0.18, 0.46)]); }
+  const streak = [], m = 3 + Math.floor(Math.random() * 3);
+  for (let i = 0; i < m; i++) { const sd = rand(-0.25, 0.25), d = s * (0.6 + i * 0.38 + rand(0, 0.3)); streak.push([x + Math.cos(ang + sd) * d, y + Math.sin(ang + sd) * d, s * 0.16 * (1 - i / (m + 1)) + 0.8]); }
+  const flecks = [];
+  for (let i = 0; i < 6; i++) { const a = rand(0, TAU), d = s * rand(1, 1.9); flecks.push([x + Math.cos(a) * d, y + Math.sin(a) * d, rand(0.8, 2.2)]); }
+  const body = (grow, dx, dy) => {
+    circle(c, x + dx, y + dy, s * 0.62 + grow);
+    for (const [lx, ly, lr] of lobes) circle(c, lx + dx, ly + dy, lr + grow);
+    for (const [sx, sy, sr] of streak) blob(c, sx + dx, sy + dy, sr * 1.9 + grow, sr + grow, ang);
+  };
+  if (!hard) { c.fillStyle = hexA(T.dark, 0.22); body(2.2, 0, 0); }            // paint soaking into the turf
+  c.fillStyle = hexA(T.dark, hard ? 0.7 : 0.55); body(0.6, 0.9, 1.1);            // darker rim gives depth
+  c.fillStyle = T.color; body(0, 0, 0);
+  for (const [fx, fy, fr] of flecks) circle(c, fx, fy, fr);
+  for (let i = 0; i < 7; i++) {                                                   // fine spray fanning forward
+    const a = ang + vrand(-0.7, 0.7), d = s * vrand(1.2, 2.6);
+    circle(c, x + Math.cos(a) * d, y + Math.sin(a) * d, vrand(0.5, 1.3));
+  }
+  c.fillStyle = T.light;                                                          // wet shine
+  c.globalAlpha = hard ? 0.6 : 0.4; blob(c, x - s * 0.18, y - s * 0.2, s * 0.2, s * 0.12, -0.6);
+  if (hard) { c.globalAlpha = 0.35; circle(c, x + s * 0.2, y - s * 0.32, s * 0.07); }
+  c.globalAlpha = 1;
 }
 export function burst(x, y, team, n) {
   for (let i = 0; i < n; i++) {
@@ -178,22 +202,60 @@ function drawFlag(c, f, x, y, sc, now) {
     c.beginPath(); c.arc(x, y, 16, -Math.PI / 2, -Math.PI / 2 + TAU * k); c.stroke();
   }
 }
+// Animation state for drawing only (stride, lean, hit pop). Kept here, not on the player, so the simulation and G
+// are untouched by how players look.
+const look = new WeakMap();
+function animate(p, now) {
+  let L = look.get(p);
+  if (!L) { L = { x: p.x, y: p.y, t: now, phase: 0, move: 0, dir: p.aim, state: p.state, pop: 0 }; look.set(p, L); }
+  const dt = clamp(now - L.t, 0, 0.1), dx = p.x - L.x, dy = p.y - L.y, moved = Math.hypot(dx, dy);
+  if (moved > 40) { L.phase = 0; L.move = 0; }                                    // respawn or new match: no stride
+  else if (dt > 0) {
+    L.phase += moved / 7;
+    L.move += (clamp(moved / dt / 160, 0, 1) - L.move) * clamp(dt * 12, 0, 1);
+    if (moved > 0.2) L.dir = Math.atan2(dy, dx);
+  }
+  if (L.state === 'active' && p.state === 'painted') L.pop = 1;                   // just got hit
+  L.pop = Math.max(0, L.pop - dt * 4);
+  Object.assign(L, { x: p.x, y: p.y, t: now, state: p.state });
+  return L;
+}
 function drawPlayer(c, p, now) {
-  const T = TEAMS[p.team], r = p.r, painted = p.state === 'painted';
+  const T = TEAMS[p.team], r = p.r, painted = p.state === 'painted', L = animate(p, now);
   c.save(); c.translate(p.x, p.y);
-  c.fillStyle = 'rgba(0,0,0,0.28)'; c.beginPath(); c.ellipse(3, 5, r * 1.05, r * 0.82, 0, 0, TAU); c.fill();
+  // team glow and shadow on the turf, so teams read at a glance
+  const glow = c.createRadialGradient(0, 0, r * 0.4, 0, 0, r * 1.75);
+  glow.addColorStop(0, hexA(T.color, painted ? 0.12 : 0.3)); glow.addColorStop(1, hexA(T.color, 0));
+  c.fillStyle = glow; circle(c, 0, 0, r * 1.75);
+  c.fillStyle = 'rgba(0,0,0,0.3)'; c.beginPath(); c.ellipse(3, 5, r * 1.05, r * 0.82, 0, 0, TAU); c.fill();
   if (p.isHuman) { c.strokeStyle = 'rgba(245,248,242,0.9)'; c.lineWidth = 2; c.beginPath(); c.arc(0, 0, r + 5, 0, TAU); c.stroke(); }
   if (p.carrying) {
     c.strokeStyle = TEAMS[p.carrying.team].color; c.lineWidth = 2.5; c.setLineDash([5, 4]); c.lineDashOffset = -now * 24;
     c.beginPath(); c.arc(0, 0, r + 9, 0, TAU); c.stroke(); c.setLineDash([]);
   }
-  c.globalAlpha = painted ? 0.7 : 1;
+  c.save();                                              // body only: the rings and name below don't bob or pop
+  c.globalAlpha = painted ? 0.72 : 1;
+  // boots stepping in the direction of travel (they peek out under the body as it walks)
+  c.save(); c.rotate(L.dir);
+  const stride = Math.sin(L.phase) * 8.5 * L.move;
+  c.fillStyle = '#14181c';
+  blob(c, stride, -5, 4.4, 2.9, 0); blob(c, -stride, 5, 4.4, 2.9, 0);
+  c.restore();
+  // body leans into the run, bobs with each step, and pops when hit
+  const lean = 1.6 * L.move, bob = 1 + Math.abs(Math.sin(L.phase)) * 0.035 * L.move, pop = 1 + 0.24 * L.pop;
+  c.translate(Math.cos(L.dir) * lean, Math.sin(L.dir) * lean);
+  c.scale(bob * pop, bob * pop);
   c.rotate(p.aim);
-  // torso from above: shoulders wider than deep, with a jersey stripe
-  c.fillStyle = T.color; c.strokeStyle = T.dark; c.lineWidth = 2.2;
+  // pod pack on the back with spare paint
+  c.fillStyle = '#262c32'; rrPath(c, -r * 1.02, -r * 0.5, r * 0.5, r, 3); c.fill();
+  c.fillStyle = T.dark; for (const py of [-r * 0.3, 0, r * 0.3]) circle(c, -r * 0.92, py, 2.1);
+  // torso from above: shoulders wider than deep, jersey stripe, shoulder pads, crisp outline
+  c.fillStyle = T.color; c.strokeStyle = 'rgba(10,14,18,0.8)'; c.lineWidth = 2;
   c.beginPath(); c.ellipse(-1, 0, r * 0.74, r * 1.08, 0, 0, TAU); c.fill(); c.stroke();
   c.save(); c.beginPath(); c.ellipse(-1, 0, r * 0.74, r * 1.08, 0, 0, TAU); c.clip();
   c.fillStyle = hexA(T.light, 0.32); c.fillRect(-5, -r * 1.1, 3.5, r * 2.2);
+  c.fillStyle = hexA(T.light, 0.28); blob(c, -1, -r * 0.72, r * 0.42, r * 0.24, 0); blob(c, -1, r * 0.72, r * 0.42, r * 0.24, 0);
+  c.fillStyle = hexA(T.dark, 0.35); c.fillRect(-r * 0.74 - 1, -r * 1.1, r * 0.3, r * 2.2);    // shade on the back
   if (p.splats.length) {                                                  // paint on the jersey
     c.rotate(-p.aim);
     for (const s of p.splats) { c.fillStyle = TEAMS[s.team].color; for (const [lx, ly, lr] of s.lobes) circle(c, lx, ly, lr); }
@@ -202,15 +264,18 @@ function drawPlayer(c, p, now) {
   // arms reaching forward to the marker
   c.strokeStyle = T.dark; c.lineWidth = 4.5; c.lineCap = 'round';
   c.beginPath(); c.moveTo(1, r * 0.78); c.lineTo(r * 0.62, 3); c.moveTo(1, -r * 0.78); c.lineTo(r * 1.05, -1); c.stroke();
-  drawMarker(c, p.marker, r);
+  drawMarker(c, p.marker, r, T);
   c.fillStyle = '#15191d'; circle(c, r * 0.62, 3, 2.8); circle(c, r * 1.05, -1, 2.6);        // gloves
-  // head: dark helmet and mask, team headwrap at the back, goggle lens facing forward
-  c.fillStyle = '#1a1f24'; circle(c, 1, 0, r * 0.5);
+  // head: dark helmet and mask, team headwrap at the back, goggle lens facing forward with a glint
+  c.fillStyle = '#1a1f24'; c.strokeStyle = 'rgba(0,0,0,0.6)'; c.lineWidth = 1.2;
+  c.beginPath(); c.arc(1, 0, r * 0.5, 0, TAU); c.fill(); c.stroke();
   c.fillStyle = T.color; c.beginPath(); c.moveTo(1, 0); c.arc(1, 0, r * 0.5, Math.PI * 0.62, Math.PI * 1.38); c.closePath(); c.fill();
   c.fillStyle = PAL.lens; c.globalAlpha = painted ? 0.35 : 0.85;
   c.beginPath(); c.ellipse(r * 0.34, 0, r * 0.13, r * 0.36, 0, 0, TAU); c.fill();
+  c.fillStyle = '#ffffff'; c.globalAlpha = painted ? 0.2 : 0.7; circle(c, r * 0.36, -r * 0.18, 1.1);
   c.globalAlpha = 1;
-  c.rotate(-p.aim);
+  if (L.pop > 0) { c.fillStyle = `rgba(255,255,255,${0.55 * L.pop})`; circle(c, 0, 0, r * 1.1); }   // hit flash
+  c.restore();
   if (painted) {
     c.strokeStyle = 'rgba(245,248,242,0.75)'; c.lineWidth = 1.5; c.setLineDash([3, 4]);
     c.beginPath(); c.arc(0, 0, r + 4, 0, TAU); c.stroke(); c.setLineDash([]);
@@ -225,18 +290,28 @@ function drawPlayer(c, p, now) {
   c.fillText(label, 0, -r - 7);
   c.restore();
 }
-// Electro: short barrel with a loader on top. Pump: long barrel with a wooden pump handle.
-function drawMarker(c, kind, r) {
+// Electro: short barrel with a see-through loader full of paint. Pump: long barrel, wooden pump handle, and a short
+// feed tube of paint. Barrel lengths match the muzzle puff in muzzlePuff().
+function drawMarker(c, kind, r, T) {
   const x0 = r * 0.3;
   if (kind === 'pump') {
     c.fillStyle = PAL.marker; c.fillRect(x0, -2.2, r + 22, 4.4);
+    c.fillStyle = PAL.markerHi; c.fillRect(x0 + r + 19, -2.8, 3, 5.6);                 // muzzle
     c.fillStyle = PAL.markerHi; c.fillRect(x0, -4, 12, 8);
     c.fillStyle = '#8a6a44'; c.fillRect(x0 + 16, -3.4, 9, 6.8);
+    c.fillStyle = 'rgba(0,0,0,0.3)'; for (const hx of [x0 + 18.5, x0 + 21.5]) c.fillRect(hx, -3.4, 1, 6.8); // grip ridges
+    c.fillStyle = 'rgba(20,24,28,0.9)'; rrPath(c, x0 + 1.5, -2.6, 9, 5.2, 2.4); c.fill(); // feed tube
+    c.fillStyle = T.color; for (const bx of [x0 + 4, x0 + 7.5]) circle(c, bx, 0, 1.7);
   } else {
     c.fillStyle = PAL.marker; c.fillRect(x0, -2.8, r + 10, 5.6);
+    c.fillStyle = PAL.markerHi; c.fillRect(x0 + r + 7, -3.4, 3, 6.8);                  // muzzle
     c.fillStyle = PAL.markerHi; c.fillRect(x0, -4.5, 13, 9);
-    c.fillStyle = 'rgba(18,22,26,0.95)'; c.beginPath(); c.ellipse(x0 + 9, 0, 6.5, 5.2, 0, 0, TAU); c.fill();
-    c.fillStyle = 'rgba(255,255,255,0.22)'; circle(c, x0 + 7.5, -2, 1.8);
+    c.save();
+    c.fillStyle = 'rgba(18,22,26,0.92)'; c.beginPath(); c.ellipse(x0 + 9, 0, 6.5, 5.2, 0, 0, TAU); c.fill(); c.clip();
+    c.fillStyle = T.color; for (const [bx, by] of [[x0 + 6, -1.8], [x0 + 9.5, 1.6], [x0 + 12, -1.4], [x0 + 6.5, 2.3]]) circle(c, bx, by, 1.9);
+    c.restore();
+    c.strokeStyle = 'rgba(0,0,0,0.5)'; c.lineWidth = 1; c.beginPath(); c.ellipse(x0 + 9, 0, 6.5, 5.2, 0, 0, TAU); c.stroke();
+    c.fillStyle = 'rgba(255,255,255,0.3)'; circle(c, x0 + 7.5, -2.4, 1.5);
   }
 }
 function drawOut(c, p) {
