@@ -7,7 +7,7 @@ Notes for Claude Code (and for Jeff) on where this project stands as it moves ou
 - A 3v3 top-down paintball game. Jeff's personal hobby and learning project, not for sale.
 - The point is to learn how Claude Code plans, builds, and tests a game. Jeff doesn't write code by hand.
   Explain what you're doing and why, work in small testable steps, and flag risks before big changes.
-- Built in a chat as one self-contained file (`splat-field.html`, still in git history at commit 9254aa4), then split
+- Built in a chat as one self-contained file (`splat-field.html`, still in git history at commit 9935864), then split
   into a Vite project: `index.html`, `src/styles.css`, and one JavaScript file per code section (see the code map).
   Canvas 2D drawing, Web Audio synthesized sound, no game libraries, no image or audio files.
   The only external resource is Google Fonts (Saira Stencil One, Barlow Semi Condensed), with fallbacks.
