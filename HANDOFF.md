@@ -17,6 +17,8 @@ Notes for Claude Code (and for Jeff) on where this project stands as it moves ou
 - One-time setup: `npm install` (needs Node.js), then `npx playwright install chromium` for the tests.
 - `npm run dev` starts the game at http://localhost:5173. CSS edits show up instantly; JS edits reload the page.
 - `npm run build` makes a static copy in `dist/`; `npm run preview` serves that copy.
+- The game is published at https://schik13797razor.github.io/splat-field/. Every push to `master` on GitHub
+  rebuilds and republishes it automatically (`.github/workflows/deploy.yml`), usually within a couple of minutes.
 - `npm test` loads and plays the game in a headless browser and fails on any console error (about 15 s).
 - `npm run sim` runs the bot-only balance batches below and prints a table (see `tests/sim.js` for options).
 

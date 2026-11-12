@@ -40,6 +40,8 @@ Code plans, builds, and tests a game. `HANDOFF.md` has the full history and open
 - `npm install`, then `npx playwright install chromium` once: one-time setup (dev dependencies: Vite, Playwright).
 - `npm run dev`: dev server at http://localhost:5173. CSS hot-swaps; a JS edit reloads the page.
 - `npm run build` / `npm run preview`: static build into `dist/` and serve it.
+- **Publishing:** every push to `master` rebuilds and publishes the game to https://schik13797razor.github.io/splat-field/
+  (`.github/workflows/deploy.yml`). Pushing `master` is a public release: push only when Jeff asks.
 - `npm test` (`tests/smoke.js`, about 15 s): loads the game in headless Chromium, plays a real match through the menu
   and controls, sweeps every field × mode with bots, and fails on any page error or `console.error` (failed Google
   Fonts requests are ignored). Run it after every change.
