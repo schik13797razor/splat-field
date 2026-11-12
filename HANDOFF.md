@@ -7,9 +7,16 @@ Notes for Claude Code (and for Jeff) on where this project stands as it moves ou
 - A 3v3 top-down paintball game. Jeff's personal hobby and learning project, not for sale.
 - The point is to learn how Claude Code plans, builds, and tests a game. Jeff doesn't write code by hand.
   Explain what you're doing and why, work in small testable steps, and flag risks before big changes.
-- Built in a chat as one self-contained file, `splat-field.html` (HTML + CSS + JavaScript, about 2,000 lines).
-  Canvas 2D drawing, Web Audio synthesized sound, no libraries, no image or audio files.
+- Built in a chat as one self-contained file (`splat-field.html`, still in git history at commit 9254aa4), then split
+  into a Vite project: `index.html`, `src/styles.css`, and one JavaScript file per code section (see the code map).
+  Canvas 2D drawing, Web Audio synthesized sound, no game libraries, no image or audio files.
   The only external resource is Google Fonts (Saira Stencil One, Barlow Semi Condensed), with fallbacks.
+
+## Running it
+
+- One-time setup: `npm install` (needs Node.js).
+- `npm run dev` starts the game at http://localhost:5173. CSS edits show up instantly; JS edits reload the page.
+- `npm run build` makes a static copy in `dist/`; `npm run preview` serves that copy.
 
 ## Rules already decided with Jeff
 
@@ -34,21 +41,28 @@ Notes for Claude Code (and for Jeff) on where this project stands as it moves ou
   bot route is walkable and there's enough cover.
 - **Bot skill:** Easy / Normal / Hard (the `DIFF` table).
 
-## Code map (numbered sections inside the script)
+## Code map (one file per section in `src/`)
 
-1. CONFIG: `CFG`, `DIFF`, `MARKERS`. Every tunable number lives here.
-2. FIELD: `MAPS`, `BASES`, `buildObstacles`.
-3. GEOMETRY: segment vs rectangle/circle, `raycast`, collision push-out.
-4. PATHFINDING: 20-unit grid, A*, cover spots, `applyLayout`, `randomLayout`.
-5. GAME STATE: `G`, `makePlayer`, `newMatch`.
-6. RULES: shooting, hits, wash, flags, rounds, stamina.
-7. BOT BRAINS: `pickTarget`, `updateBot`, attack lanes (`routeTo`), `ctfBrain`, `followOrders`, `ltsBrain`, `findCover`.
-8. DRAWING: the field layer is drawn once, the paint layer keeps every splat, then players and effects.
-9. SOUND: Web Audio synth, field ambience.
-10. INPUT + UI: keyboard, mouse, touch, menus, settings saved in localStorage, HUD, `loadMap`.
-11. MAIN LOOP: update, render, HUD.
+1. `config.js` CONFIG: `CFG`, `DIFF`, `MARKERS`. Every tunable number lives here.
+   `util.js` holds the small shared helpers (`W`, `H`, `clamp`, `rand`, `dist`, `mulberry32`, ...).
+2. `field.js` FIELD: `MAPS`, `BASES`, `buildObstacles`.
+3. `geometry.js` GEOMETRY: segment vs rectangle/circle, `raycast`, collision push-out.
+4. `pathfinding.js` PATHFINDING: 20-unit grid, A*, cover spots, `applyLayout`, `randomLayout`.
+5. `state.js` GAME STATE: `G`, `makePlayer`, `newMatch`, `hitMark` (crosshair flash timer).
+6. `rules.js` RULES: shooting, hits, wash, flags, rounds, stamina.
+7. `bots.js` BOT BRAINS: `pickTarget`, `updateBot`, attack lanes (`routeTo`), `ctfBrain`, `followOrders`, `ltsBrain`, `findCover`.
+8. `drawing.js` DRAWING: the field layer is drawn once, the paint layer keeps every splat, then players and effects.
+9. `sound.js` SOUND: Web Audio synth, field ambience.
+10. `ui.js` INPUT + UI: keyboard, mouse, touch, menus, settings saved in localStorage, HUD, `loadMap`.
+11. `main.js` MAIN LOOP: update, render, HUD, `boot()`, and the `window.__splat` test hook. This is the entry point.
 
-`window.claude?.hot` calls only matter in the Claude artifact viewer and can be removed.
+Files share code through `import`/`export`. Several files import each other in a loop (rules ↔ drawing ↔ ui, for
+example). That's fine as long as **code that runs when a file loads only uses its own names or the leaf files**
+(`config`, `util`, `field`, `geometry`, `pathfinding`). Anything that needs another section at startup goes in
+`boot()` (that's why `bindPointerInput()` exists: it needs the canvas from `drawing.js`). Breaking this rule shows up
+as "Cannot access 'X' before initialization" in the browser console.
+
+The `window.claude?.hot` artifact-viewer code was removed when the project was split.
 
 **Test hook:** `window.__splat` exposes `G`, `CFG`, `DIFF`, `MARKERS`, `MAPS`, `COVER`, `step(dt)`,
 `newMatch(mode, diff, human, marker)`, `loadMap(key)`, `randomLayout(seed)`, `astar`, `issueOrder`,
@@ -56,7 +70,7 @@ Notes for Claude Code (and for Jeff) on where this project stands as it moves ou
 
 ## How balance was tested
 
-Headless Chromium (Playwright): load the page, call `newMatch(mode, diff, false)` so all six players are bots,
+Headless Chromium (Playwright): load the page (now the `npm run dev` URL), call `newMatch(mode, diff, false)` so all six players are bots,
 then call `step(1/60)` in a loop until `G.phase === 'over'` (capped at 420 simulated seconds). Measured:
 
 - Capture the Flag: average match length, total captures, timeouts (neither team reached 3), Blue wins.
@@ -75,6 +89,10 @@ then call `step(1/60)` in a loop until `G.phase === 'over'` (capped at 420 simul
 | Random, CTF Normal | 238 s, 1 timeout in 8 |
 | LTS round length on other fields (Normal) | 21-23 s |
 | Random field generator | 300 of 300 valid, about 2 ms each |
+
+Refactor check (2026-11-12, splitting into files): with `Math.random` swapped for a seeded generator and
+`requestAnimationFrame` stopped, the original file and the split version produced identical results in 24 of 24
+bot-only matches (every mode × skill × field) and 300 of 300 random fields.
 
 For history: version 1 had CTF Normal running out the clock in 6 of 8 matches, Hard in 8 of 8, and LTS rounds of 9-14 s.
 

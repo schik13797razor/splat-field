@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Splat Field</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Saira+Stencil+One&display=swap">
+</head>
+<body>
+<div id="app">
+  <header class="board" aria-label="Scoreboard">
+    <div class="team team-o">
+      <div class="tag"><span class="chip"></span>Orange</div>
+      <div class="roster" id="rosterO" aria-label="Orange players"></div>
+      <div class="obj"><span class="big" id="objO">0</span><span class="lbl" id="lblO">Flags</span></div>
+      <div class="hits"><b id="hitsO">0</b> hits</div>
+    </div>
+    <div class="mid">
+      <div class="modeName" id="modeName">Capture the Flag</div>
+      <div class="clock" id="clock">6:00</div>
+      <div class="sub" id="subLine">First to 3 flags</div>
+    </div>
+    <div class="team team-b">
+      <div class="tag"><span class="chip"></span>Blue</div>
+      <div class="roster" id="rosterB" aria-label="Blue players"></div>
+      <div class="obj"><span class="big" id="objB">0</span><span class="lbl" id="lblB">Flags</span></div>
+      <div class="hits"><b id="hitsB">0</b> hits</div>
+    </div>
+  </header>
+
+  <main class="stage" id="stage">
+    <canvas id="game" aria-label="Paintball field"></canvas>
+    <div class="banner" id="banner" hidden><span class="bsub" id="bannerSub"></span><span class="bmain" id="bannerMain"></span></div>
+    <ol class="feed" id="feed" aria-live="polite"></ol>
+    <div class="status" id="status" hidden>
+      <div id="statusText"></div>
+      <div class="meter" id="washMeter" hidden><b id="washFill"></b></div>
+    </div>
+    <div class="hopper" id="hopper" hidden>
+      <div class="hrow"><span class="lbl" id="hopLabel">Electro</span><span class="hnum"><b id="ammoNum">45</b> / <span id="ammoMax">45</span></span></div>
+      <div class="meter"><b id="ammoFill"></b></div>
+      <div class="srow"><span class="lbl">Sprint</span><div class="meter stam" id="stamMeter"><b id="stamFill"></b></div></div>
+      <div class="hhint" id="ammoHint">Press R to reload</div>
+    </div>
+    <div class="squad" id="squad" hidden aria-label="Squad orders">
+      <span class="sqlabel">Squad</span>
+      <button class="sq" type="button" data-cmd="follow" title="Follow (1): your bots stay with you"><kbd>1</kbd><span>Follow</span></button>
+      <button class="sq" type="button" data-cmd="hold" title="Hold (2): your bots hold the spot under your crosshair. Clicking this button holds where you stand."><kbd>2</kbd><span>Hold</span></button>
+      <button class="sq" type="button" data-cmd="attack" title="Attack (3): your bots push forward"><kbd>3</kbd><span>Attack</span></button>
+      <button class="sq on" type="button" data-cmd="free" title="Free play (4): your bots play their normal positions"><kbd>4</kbd><span>Free</span></button>
+    </div>
+
+    <section class="overlay" id="menu" aria-labelledby="menuTitle">
+      <div class="panel">
+        <div class="head">
+          <h1 class="title" id="menuTitle"><span class="o">Splat</span> <span class="b">Field</span></h1>
+          <p class="lede">3 v 3 paintball. You lead Orange with two bots beside you. Every paintball that lands is a point for your team.</p>
+        </div>
+        <fieldset>
+          <legend>Game mode</legend>
+          <div class="modes">
+            <label class="choice">
+              <input type="radio" name="mode" value="lts" id="modeLts">
+              <strong>Last Team Standing</strong>
+              <span>One hit and you're out for the round. Clear out Blue to win it. First team to 3 rounds.</span>
+            </label>
+            <label class="choice">
+              <input type="radio" name="mode" value="ctf" id="modeCtf">
+              <strong>Capture the Flag</strong>
+              <span>Grab Blue's flag and run it to your base. Get hit and you drop it, then wash off for 3 seconds. First to 3 flags.</span>
+            </label>
+          </div>
+        </fieldset>
+        <div class="opts">
+          <fieldset>
+            <legend>Bot skill</legend>
+            <div class="seg">
+              <label><input type="radio" name="diff" value="easy" id="diffEasy">Easy</label>
+              <label><input type="radio" name="diff" value="normal" id="diffNormal">Normal</label>
+              <label><input type="radio" name="diff" value="hard" id="diffHard">Hard</label>
+            </div>
+          </fieldset>
+          <fieldset class="grow">
+            <legend>Your marker</legend>
+            <div class="seg">
+              <label><input type="radio" name="marker" value="electro" id="markElectro">Electro</label>
+              <label><input type="radio" name="marker" value="pump" id="markPump">Pump</label>
+            </div>
+            <p class="fhint" id="markerHint"></p>
+          </fieldset>
+        </div>
+        <fieldset>
+          <legend>Field</legend>
+          <div class="seg wide">
+            <label><input type="radio" name="map" value="snake" id="mapSnake">Snake Line</label>
+            <label><input type="radio" name="map" value="barrel" id="mapBarrel">Barrel Yard</label>
+            <label><input type="radio" name="map" value="midline" id="mapMidline">Midline</label>
+            <label><input type="radio" name="map" value="random" id="mapRandom">Random</label>
+          </div>
+        </fieldset>
+        <button class="btn primary" id="playBtn" type="button">Play</button>
+        <dl class="keysgrid">
+          <dt><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></dt><dd>Move</dd>
+          <dt>Mouse</dt><dd>Aim</dd>
+          <dt>Left click</dt><dd>Shoot (hold to keep firing)</dd>
+          <dt><kbd>Shift</kbd></dt><dd>Sprint (no shooting)</dd>
+          <dt><kbd>R</kbd></dt><dd>Reload</dd>
+          <dt><kbd>1</kbd>–<kbd>4</kbd></dt><dd>Squad orders</dd>
+          <dt><kbd>F</kbd></dt><dd>Fast-forward when out</dd>
+          <dt><kbd>Esc</kbd></dt><dd>Pause</dd>
+          <dt><kbd>M</kbd></dt><dd>Sound on or off</dd>
+        </dl>
+        <p class="touchnote" id="touchNote" hidden>Built for keyboard and mouse. On a phone, turn it sideways: drag on the left side to move, and touch the right side to aim and shoot.</p>
+      </div>
+    </section>
+
+    <section class="overlay" id="pauseMenu" hidden aria-labelledby="pauseTitle">
+      <div class="panel small">
+        <h2 class="title sm" id="pauseTitle">Paused</h2>
+        <div class="row">
+          <button class="btn primary" id="resumeBtn" type="button">Resume</button>
+          <button class="btn" id="restartBtn" type="button">Restart</button>
+          <button class="btn" id="quitBtn" type="button">Main menu</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="overlay" id="endMenu" hidden aria-labelledby="endTitle">
+      <div class="panel">
+        <div class="head">
+          <h2 class="title" id="endTitle">Orange wins</h2>
+          <p class="lede" id="endLede"></p>
+        </div>
+        <p class="score" id="endScore"></p>
+        <div class="tablewrap">
+          <table class="stats">
+            <thead><tr><th>Player</th><th>Hits</th><th>Painted</th><th id="capsHead">Flags</th></tr></thead>
+            <tbody id="statsBody"></tbody>
+          </table>
+        </div>
+        <div class="row">
+          <button class="btn primary" id="againBtn" type="button">Play again</button>
+          <button class="btn" id="menuBtn" type="button">Main menu</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footbar">
+    <div class="keys"><span><kbd>WASD</kbd> move</span><span>Mouse aim</span><span>Click shoot</span><span><kbd>Shift</kbd> sprint</span><span><kbd>R</kbd> reload</span><span><kbd>1</kbd>–<kbd>4</kbd> squad</span><span><kbd>Esc</kbd> pause</span><span><kbd>M</kbd> sound</span></div>
+    <div class="btns">
+      <button class="btn" id="pauseBtn" type="button">Pause</button>
+      <button class="btn" id="soundBtn" type="button">Sound: on</button>
+    </div>
+  </footer>
+</div>
+<script type="module" src="/src/main.js"></script>
+</body>
+</html>
