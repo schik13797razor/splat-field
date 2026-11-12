@@ -14,9 +14,11 @@ Notes for Claude Code (and for Jeff) on where this project stands as it moves ou
 
 ## Running it
 
-- One-time setup: `npm install` (needs Node.js).
+- One-time setup: `npm install` (needs Node.js), then `npx playwright install chromium` for the tests.
 - `npm run dev` starts the game at http://localhost:5173. CSS edits show up instantly; JS edits reload the page.
 - `npm run build` makes a static copy in `dist/`; `npm run preview` serves that copy.
+- `npm test` loads and plays the game in a headless browser and fails on any console error (about 15 s).
+- `npm run sim` runs the bot-only balance batches below and prints a table (see `tests/sim.js` for options).
 
 ## Rules already decided with Jeff
 
@@ -70,8 +72,10 @@ The `window.claude?.hot` artifact-viewer code was removed when the project was s
 
 ## How balance was tested
 
-Headless Chromium (Playwright): load the page (now the `npm run dev` URL), call `newMatch(mode, diff, false)` so all six players are bots,
-then call `step(1/60)` in a loop until `G.phase === 'over'` (capped at 420 simulated seconds). Measured:
+Now automated as `npm run sim` (`tests/sim.js`). Headless Chromium (Playwright): load the page, call
+`newMatch(mode, diff, false)` so all six players are bots, then call `step(1/60)` in a loop until
+`G.phase === 'over'` (capped at 420 simulated seconds for CTF, 900 for LTS, which can run 5 rounds of 150 s). The
+sim also stops the real-time loop so only `step()` moves the game. Measured:
 
 - Capture the Flag: average match length, total captures, timeouts (neither team reached 3), Blue wins.
 - Last Team Standing: average round length, Blue wins.
@@ -94,14 +98,33 @@ Refactor check (2026-11-12, splitting into files): with `Math.random` swapped fo
 `requestAnimationFrame` stopped, the original file and the split version produced identical results in 24 of 24
 bot-only matches (every mode × skill × field) and 300 of 300 random fields.
 
+### First `npm run sim` results (2026-11-12, 20 matches per setting, same v3 code)
+
+CTF length, captures, timeouts; then LTS round length.
+
+| Field | Easy | Normal | Hard |
+|---|---|---|---|
+| Snake Line | 98 s, 4.3, 0/20; 25.5 s | 134 s, 4.3, 0/20; 20.5 s | 210 s, 4.3, 2/20; 16.5 s |
+| Barrel Yard | 142 s, 3.9, 0/20; 30.9 s | 266 s, 3.4, 9/20; 23.6 s | 349 s, 2.2, 18/20; 17.3 s |
+| Midline | 98 s, 4.2, 0/20; 28.5 s | 116 s, 3.8, 0/20; 24.2 s | 231 s, 4.2, 2/20; 18.0 s |
+| Random | 182 s, 4.1, 2/20; 26.1 s | 196 s, 4.0, 2/20; 21.0 s | 294 s, 3.1, 11/20; 16.6 s |
+
+Blue won 147/240 CTF and 137/240 LTS matches. A separate 200-match batch of Snake Line CTF Normal: 144 s,
+4.2 captures, 2 timeouts, Blue won 117/200. Random generator: 300/300 valid, ~2 ms each.
+
+Compared with the handoff table: LTS round lengths, Barrel Yard, Midline, and the random generator match.
+Snake Line CTF runs longer than recorded (Normal 134-144 s vs 107-120 s; Hard 210 s vs 162 s). The code is the same
+v3 code (proven by the refactor check above), so the gap comes from the earlier, smaller batches or a measurement
+difference that wasn't written down. Random CTF Normal came in shorter (196 s vs 238 s in 8 matches).
+
 For history: version 1 had CTF Normal running out the clock in 6 of 8 matches, Hard in 8 of 8, and LTS rounds of 9-14 s.
 
 ## Open items and ideas
 
-- **Possible Blue tilt:** Blue won about 60% of bot-only CTF matches on Snake Line in some batches (13 of 20 in the
-  largest). It could be noise, or a small asymmetry: A* neighbor order, the scan order in `nearestFree`, or players
-  updating in team order. Worth a proper check with bigger batches.
+- **Blue tilt (confirmed, 2026-11-12):** Blue won 147/240 CTF and 137/240 LTS bot-only matches across all fields,
+  and 117/200 on Snake Line CTF Normal. That's too consistent to be noise. Suspects: A* neighbor order, the scan
+  order in `nearestFree`, or players updating in team order.
 - Easy LTS rounds dropped from 33 s to 24 s once bots learned to sprint between bunkers.
-- Barrel Yard Capture the Flag runs long (3 timeouts in 8).
+- Barrel Yard Capture the Flag runs long: Normal 9 timeouts in 20, Hard 18 in 20. Random Hard: 11 in 20.
 - Replace the drawn art and synthesized sounds with real asset packs (for example CC0 packs). Jeff wants to do this here.
 - Skipped for now, by Jeff's choice: an "enemy paint slows you down" mechanic, and local 2-player / online multiplayer.

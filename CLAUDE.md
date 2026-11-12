@@ -37,14 +37,22 @@ Code plans, builds, and tests a game. `HANDOFF.md` has the full history and open
 
 ## Commands
 
-- `npm install`: one-time setup (Vite is the only dependency).
+- `npm install`, then `npx playwright install chromium` once: one-time setup (dev dependencies: Vite, Playwright).
 - `npm run dev`: dev server at http://localhost:5173. CSS hot-swaps; a JS edit reloads the page.
 - `npm run build` / `npm run preview`: static build into `dist/` and serve it.
+- `npm test` (`tests/smoke.js`, about 15 s): loads the game in headless Chromium, plays a real match through the menu
+  and controls, sweeps every field × mode with bots, and fails on any page error or `console.error` (failed Google
+  Fonts requests are ignored). Run it after every change.
+- `npm run sim` (`tests/sim.js`): bot-only balance batches, printed as one table per field × skill. Defaults to 8
+  matches per setting (192 matches, about 15 s). Options: `--matches=N --fields=snake,barrel,midline,random
+  --skills=easy,normal,hard --modes=ctf,lts --seed=N --workers=N`. With `--seed`, results are exactly repeatable.
+  Example single setting: `npm run sim -- --matches=50 --fields=snake --skills=normal --modes=ctf`.
 
-There is no test runner or linter in the repo. Balance tests are done ad hoc with headless Chromium (Playwright) via
-the `window.__splat` hook, which `src/main.js` exposes: `G`, `CFG`, `DIFF`, `MARKERS`, `MAPS`, `COVER`, `step(dt)`,
-`newMatch(mode, diff, human, marker)`, `startHumanMatch`, `issueOrder`, `humanPlayer`, `loadMap(key)`,
-`randomLayout(seed)`, `astar`, `settings`. Keep this hook's keys stable. To run a single bot-only match:
+Both scripts start their own Vite server on a free port (`tests/harness.js`), so they work while `npm run dev` runs.
+There is no linter. The tests drive the game through the `window.__splat` hook, which `src/main.js` exposes: `G`,
+`CFG`, `DIFF`, `MARKERS`, `MAPS`, `COVER`, `step(dt)`, `newMatch(mode, diff, human, marker)`, `startHumanMatch`,
+`issueOrder`, `humanPlayer`, `loadMap(key)`, `randomLayout(seed)`, `astar`, `settings`. Keep this hook's keys stable.
+A bot-only match by hand:
 
 ```js
 const S = window.__splat;
@@ -57,21 +65,19 @@ What the balance tests measure: for CTF, average match length, captures, timeout
 wins; for LTS, average round length and Blue wins. For Random, generate 300 fields with different seeds and count
 fallbacks to Snake Line.
 
-Latest results (v3, bot-only):
+Latest results (`npm run sim -- --matches=20`, 2026-11-12, v3 code; CTF length / captures / timeouts, LTS round):
 
-| Setting | Result |
-|---|---|
-| Snake Line CTF Normal | ~107-120 s, ~4 captures, 0 timeouts |
-| Snake Line CTF Hard | 162 s, 3.9 captures, 1 timeout in 10 |
-| Snake Line LTS round (Easy / Normal / Hard) | 24 / 20 / 17 s |
-| Barrel Yard CTF Normal | 264 s, 3 timeouts in 8 (runs long; open item) |
-| Midline CTF Normal | 115 s, 0 timeouts in 8 |
-| Random CTF Normal | 238 s, 1 timeout in 8 |
-| LTS round, other fields (Normal) | 21-23 s |
-| Random field generator | 300/300 valid, ~2 ms each |
+| Field | Easy | Normal | Hard |
+|---|---|---|---|
+| Snake Line | 98 s, 4.3, 0/20; 25.5 s | 134 s, 4.3, 0/20; 20.5 s | 210 s, 4.3, 2/20; 16.5 s |
+| Barrel Yard | 142 s, 3.9, 0/20; 30.9 s | 266 s, 3.4, 9/20; 23.6 s | 349 s, 2.2, 18/20; 17.3 s |
+| Midline | 98 s, 4.2, 0/20; 28.5 s | 116 s, 3.8, 0/20; 24.2 s | 231 s, 4.2, 2/20; 18.0 s |
+| Random | 182 s, 4.1, 2/20; 26.1 s | 196 s, 4.0, 2/20; 21.0 s | 294 s, 3.1, 11/20; 16.6 s |
 
-Open question: Blue won ~60% of bot-only Snake Line CTF in some batches (13 of 20). It might be noise, or an asymmetry
-(A* neighbor order, `nearestFree` scan order, players updating in team order). Check it with bigger batches.
+Random field generator: 300/300 valid, ~2 ms each. Open balance items: Barrel Yard CTF runs long (Hard almost always
+times out), and **Blue wins more than half**: 147/240 CTF and 137/240 LTS in that run, 117/200 in a Snake Line CTF
+Normal batch. That's too consistent to be noise. Suspects: A* neighbor order, `nearestFree` scan order, players
+updating in team order.
 
 ## Architecture
 
