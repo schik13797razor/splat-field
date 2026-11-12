@@ -121,26 +121,45 @@ function cleanUp(p) {
   if (p.isHuman) banner('Clean', 'Hopper refilled', 1.0);
 }
 
+// Three passes so neither team sees fresher information than the other. (With one pass, Blue updated after
+// Orange and aimed at where Orange was *this* frame, which made Blue win ~57% of bot-only CTF matches.)
+//   1. timers for everyone   2. everyone decides from the same start-of-frame picture   3. everyone moves
 export function updatePlayers(dt) {
   const frozen = G.phase !== 'play';
+  const live = [];
   for (const p of G.players) {
     if (p.state === 'out') { p.outT += dt; continue; }
+    live.push(p);
     p.cool -= dt;
     if (p.protect > 0) p.protect -= dt;
     if (p.reloadT > 0) {
       p.reloadT -= dt;
       if (p.reloadT <= 0) { p.reloadT = 0; p.ammo = MK(p).hopper; if (p.isHuman) Sound.reloaded(); }
     }
-    if (frozen) { p.vx = p.vy = 0; p.sprinting = false; if (p.isHuman) aimHuman(p); continue; }
-    if (p.isHuman) updateHuman(p, dt); else updateBot(p, dt);
-    p.x += p.vx * dt; p.y += p.vy * dt;
-    resolveCircle(p, p.r);
-    updateStamina(p, dt);
-    if (p.state === 'painted' && inRect(p, BASES[p.team].wash)) {
-      p.washT += dt;
-      if (Math.random() < dt * 22) washDrop(p);
-      if (p.washT >= CFG.washTime) cleanUp(p);
-    }
+  }
+  if (frozen) for (const p of live) { p.vx = p.vy = 0; p.sprinting = false; if (p.isHuman) aimHuman(p); }
+  else {
+    // Decide: aim, shoot, pick a direction. Bots lead their shots with the target's velocity, so each player's
+    // new velocity is held back until everyone has decided.
+    const next = live.map(p => {
+      const vx = p.vx, vy = p.vy;
+      if (p.isHuman) updateHuman(p, dt); else updateBot(p, dt);
+      const v = [p.vx, p.vy];
+      p.vx = vx; p.vy = vy;
+      return v;
+    });
+    // Move.
+    live.forEach((p, i) => {
+      [p.vx, p.vy] = next[i];
+      p.x += p.vx * dt; p.y += p.vy * dt;
+      resolveCircle(p, p.r);
+      updateStamina(p, dt);
+      if (p.state === 'painted' && inRect(p, BASES[p.team].wash)) {
+        p.washT += dt;
+        if (Math.random() < dt * 22) washDrop(p);
+        if (p.washT >= CFG.washTime) cleanUp(p);
+      }
+    });
   }
   // keep players from standing inside each other
   const ps = G.players.filter(p => p.state !== 'out');

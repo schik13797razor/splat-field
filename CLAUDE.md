@@ -67,19 +67,24 @@ What the balance tests measure: for CTF, average match length, captures, timeout
 wins; for LTS, average round length and Blue wins. For Random, generate 300 fields with different seeds and count
 fallbacks to Snake Line.
 
-Latest results (`npm run sim -- --matches=20`, 2026-11-12, v3 code; CTF length / captures / timeouts, LTS round):
+Latest results (`npm run sim -- --matches=20`, 2026-11-12, after the fair-update fix; CTF length / captures /
+timeouts, LTS round):
 
 | Field | Easy | Normal | Hard |
 |---|---|---|---|
-| Snake Line | 98 s, 4.3, 0/20; 25.5 s | 134 s, 4.3, 0/20; 20.5 s | 210 s, 4.3, 2/20; 16.5 s |
-| Barrel Yard | 142 s, 3.9, 0/20; 30.9 s | 266 s, 3.4, 9/20; 23.6 s | 349 s, 2.2, 18/20; 17.3 s |
-| Midline | 98 s, 4.2, 0/20; 28.5 s | 116 s, 3.8, 0/20; 24.2 s | 231 s, 4.2, 2/20; 18.0 s |
-| Random | 182 s, 4.1, 2/20; 26.1 s | 196 s, 4.0, 2/20; 21.0 s | 294 s, 3.1, 11/20; 16.6 s |
+| Snake Line | 125 s, 4.3, 0/20; 28.0 s | 113 s, 4.0, 0/20; 21.4 s | 185 s, 4.0, 2/20; 16.6 s |
+| Barrel Yard | 144 s, 4.0, 0/20; 31.0 s | 232 s, 3.3, 5/20; 23.8 s | 336 s, 2.0, 18/20; 17.3 s |
+| Midline | 95 s, 4.3, 0/20; 28.8 s | 144 s, 4.2, 0/20; 22.9 s | 167 s, 4.2, 0/20; 18.4 s |
+| Random | 124 s, 4.3, 0/20; 27.9 s | 205 s, 4.0, 3/20; 22.6 s | 259 s, 3.4, 5/20; 16.6 s |
 
-Random field generator: 300/300 valid, ~2 ms each. Open balance items: Barrel Yard CTF runs long (Hard almost always
-times out), and **Blue wins more than half**: 147/240 CTF and 137/240 LTS in that run, 117/200 in a Snake Line CTF
-Normal batch. That's too consistent to be noise. Suspects: A* neighbor order, `nearestFree` scan order, players
-updating in team order.
+Blue won 123/240 CTF and 113/240 LTS. Random field generator: 300/300 valid, ~3 ms each.
+Open balance item: Barrel Yard CTF runs long (Hard almost always times out).
+
+**Team fairness.** Bot-only matches should split about 50/50. Blue used to win ~57% because `updatePlayers`
+handled each player in team order and let it move immediately, so Blue (second) aimed at Orange's fresh position.
+It now runs three passes (timers, everyone decides from the same start-of-frame picture, everyone moves). Fairness
+check: 1,200 CTF matches gave Blue 51.1%, and reversing the update order no longer flips the result. Keep this
+property: anything a bot reads about other players must be the same for both teams within a frame.
 
 ## Architecture
 

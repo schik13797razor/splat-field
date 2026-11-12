@@ -121,12 +121,25 @@ difference that wasn't written down. Random CTF Normal came in shorter (196 s vs
 
 For history: version 1 had CTF Normal running out the clock in 6 of 8 matches, Hard in 8 of 8, and LTS rounds of 9-14 s.
 
+### Blue tilt found and fixed (2026-11-12)
+
+Cause: `updatePlayers` handled players in team order (Orange, then Blue) and moved each one right away. Blue bots
+therefore aimed at where Orange was *this* frame (and led shots with Orange's new velocity) while Orange aimed at
+where Blue was last frame. Experiment, 480 seeded CTF matches per variant: as-is, Blue won 56.6% of decided matches;
+Blue with Orange's exact role/lane layout, 60.5% (so the lineup wasn't the cause); Blue updating first, 41.5% (the
+advantage flipped to Orange).
+
+Fix (`rules.js`): three passes per frame: timers for everyone, then everyone decides from the same start-of-frame
+positions and velocities, then everyone moves. After the fix: 1,200 CTF matches gave Blue 51.1% (within chance),
+LTS 50.8% of 480, and reversing the update order no longer changes the result. Match length and captures stayed in
+the same range. Side effect: bots now react to your position from the previous frame (1/60 s), as they always did
+for each other.
+
+After-fix table (`npm run sim -- --matches=20`): see CLAUDE.md. Blue won 123/240 CTF and 113/240 LTS.
+
 ## Open items and ideas
 
-- **Blue tilt (confirmed, 2026-11-12):** Blue won 147/240 CTF and 137/240 LTS bot-only matches across all fields,
-  and 117/200 on Snake Line CTF Normal. That's too consistent to be noise. Suspects: A* neighbor order, the scan
-  order in `nearestFree`, or players updating in team order.
 - Easy LTS rounds dropped from 33 s to 24 s once bots learned to sprint between bunkers.
-- Barrel Yard Capture the Flag runs long: Normal 9 timeouts in 20, Hard 18 in 20. Random Hard: 11 in 20.
+- Barrel Yard Capture the Flag runs long: Normal 5 timeouts in 20, Hard 18 in 20 (after the fairness fix).
 - Replace the drawn art and synthesized sounds with real asset packs (for example CC0 packs). Jeff wants to do this here.
 - Skipped for now, by Jeff's choice: an "enemy paint slows you down" mechanic, and local 2-player / online multiplayer.
