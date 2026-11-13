@@ -65,7 +65,7 @@ export function updateBot(p, dt) {
     pickTarget(p, D);
     ai.routed = false;
     if (p.carrying) carryHome(p);
-    else if (!followOrders(p)) { if (G.mode === 'ctf') ctfBrain(p, D); else ltsBrain(p, D); }
+    else if (!followOrders(p)) { if (G.mode === 'ctf') ctfBrain(p, D); else if (G.mode === 'koth') kothBrain(p, D); else ltsBrain(p, D); }
     if (!ai.routed) ai.routeKey = '';
     if (!ai.target && p.ammo < m.hopper * 0.6) startReload(p); // top up during a quiet moment
   }
@@ -172,6 +172,63 @@ function ltsBrain(p, D) {
   else { setGoal(p, nf); ai.hold = 0; }
 }
 
+// King of the Hill. Spots on the hill: cover behind bunkers that sit on it, plus a ring of open points.
+function hillSpots() {
+  const h = G.hill, spots = [];
+  for (const side of COVER) for (const c of side) if (Math.hypot(c.x - h.x, c.y - h.y) < h.r - 14) spots.push(c);
+  for (let i = 0; i < 10; i++) {
+    const a = i / 10 * TAU, f = freePoint({ x: h.x + Math.cos(a) * h.r * 0.55, y: h.y + Math.sin(a) * h.r * 0.55 });
+    if (Math.hypot(f.x - h.x, f.y - h.y) < h.r - 14) spots.push(f);
+  }
+  return spots;
+}
+const isOnHill = pt => Math.hypot(pt.x - G.hill.x, pt.y - G.hill.y) < G.hill.r - 8;
+// A hill spot: hidden from the nearest enemy if possible, away from teammates' spots, leaning toward my lane.
+function pickHillSpot(p, threat) {
+  let best = null, bs = -Infinity;
+  for (const c of hillSpots()) {
+    let s = rand(0, 60) - Math.abs(c.y - p.ai.laneY) * 0.25 - dist(p, c) * 0.15;
+    if (threat && raycast(threat.x, threat.y, c.x, c.y, 2)) s += 120;          // a bunker between us and them
+    for (const q of G.players) if (q !== p && q.team === p.team && q.ai.goal && dist(q.ai.goal, c) < 45) s -= 140;
+    if (s > bs) { bs = s; best = c; }
+  }
+  return best;
+}
+function nearestFoe(p) {
+  let nf = null, nd = Infinity;
+  for (const e of G.players) if (e.team !== p.team && e.state === 'active') { const d = dist(p, e); if (d < nd) { nd = d; nf = e; } }
+  return nf;
+}
+// Attacker and support take the hill and fight from cover on it. The defender covers the hill from just behind it
+// on our side, and steps onto the hill whenever nobody else on the team is holding it.
+function kothBrain(p, D) {
+  const ai = p.ai, h = G.hill, fwd = p.team === 0 ? 1 : -1;
+  if (ai.target) {
+    // in a fight in the open: duck behind the nearest bunker, staying on the hill if we're on it
+    const safe = ai.goal && raycast(ai.target.x, ai.target.y, ai.goal.x, ai.goal.y, 2);
+    if (!safe) {
+      const c = isOnHill(p) ? pickHillSpot(p, ai.target) : findCover(p, ai.target, 190);
+      if (c && dist(p, c) < 220) { setGoal(p, c); ai.hold = rand(D.hold[0], D.hold[1]); }
+    }
+    return;
+  }
+  // contested and nobody in sight (they're hiding behind a bunker on the hill): go around and clear them off
+  if (h.contested && dist(p, h) < h.r + 160) {
+    let e = null, ed = Infinity;
+    for (const q of G.players) if (q.team !== p.team && q.state === 'active' && isOnHill(q)) { const d = dist(p, q); if (d < ed) { ed = d; e = q; } }
+    if (e) { setGoal(p, e); ai.hold = 0; return; }
+  }
+  if (ai.goal && !ai.atGoal) return;                                              // still walking there
+  const mateHolding = G.players.some(q => q !== p && q.team === p.team && q.state === 'active' && isOnHill(q));
+  const wantHill = p.role !== 'defender' || !mateHolding;
+  if (ai.atGoal && ai.hold > 0 && isOnHill(ai.goal) === wantHill) return;          // holding a good spot
+  if (wantHill) { const s = pickHillSpot(p, nearestFoe(p)); if (s) { setGoal(p, s); ai.hold = rand(2.5, 5); } return; }
+  // overwatch: cover on our side of the hill, 150-330 units back
+  const spots = COVER[p.team].filter(c => { const d = Math.hypot(c.x - h.x, c.y - h.y); return d > 150 && d < 330 && (c.x - h.x) * fwd < 0; });
+  const s = spots.length ? spots[Math.floor(Math.random() * spots.length)] : pickHillSpot(p, null);
+  if (s) { setGoal(p, s); ai.hold = rand(3, 6); }
+}
+
 // Routes: walk a list of waypoints (an attack lane), then the final spot.
 // The route is planned once per `key` so a bot doesn't flip between lanes every time it thinks.
 function routeTo(p, final, key, build) {
@@ -249,7 +306,9 @@ function followOrders(p) {
   }
   if (sq.cmd === 'hold') { setGoal(p, { x: sq.x, y: sq.y + (p.idx === 1 ? -26 : 26) }); return true; }
   if (sq.cmd === 'attack') {
-    if (G.mode === 'ctf') {
+    if (G.mode === 'koth') {
+      if (!(p.ai.goal && isOnHill(p.ai.goal))) { const s = pickHillSpot(p, nearestFoe(p)); if (s) setGoal(p, s); }
+    } else if (G.mode === 'ctf') {
       const mine = G.flags[0];
       if (mine.state === 'dropped' && closestBot(0, mine) === p && dist(p, mine) < 300) setGoal(p, mine);
       else attackFlag(p);

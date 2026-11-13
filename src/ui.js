@@ -3,7 +3,8 @@ import { W, H, clamp, inRect } from './util.js';
 import { MAPS, BASES } from './field.js';
 import { freePoint, applyLayout, randomLayout } from './pathfinding.js';
 import { G, humanPlayer, newMatch, custom } from './state.js';
-import { speedFor, canShoot, shoot, startReload } from './rules.js';
+import { speedFor, canShoot, shoot, startReload, onHill } from './rules.js';
+const MODE_NAMES = { ctf: 'Capture the Flag', lts: 'Last Team Standing', koth: 'King of the Hill' };
 import { canvas, view, drawField, clearPaint, drawPreview } from './drawing.js';
 import { Sound } from './sound.js';
 
@@ -45,7 +46,7 @@ export function issueOrder(cmd, atSelf) {
     sq.x = f.x; sq.y = f.y;
   }
   for (const p of G.players) if (p.team === 0 && !p.isHuman) Object.assign(p.ai, { think: 0, hold: 0, goal: null, path: [], routeKey: '' });
-  feed(cmd === 'attack' ? (G.mode === 'ctf' ? 'Squad: go get their flag' : 'Squad: push and hunt') : ORDER_TEXT[cmd], 0);
+  feed(cmd === 'attack' ? (G.mode === 'ctf' ? 'Squad: go get their flag' : G.mode === 'koth' ? 'Squad: take the hill' : 'Squad: push and hunt') : ORDER_TEXT[cmd], 0);
   Sound.order();
 }
 export function aimHuman(p) {
@@ -220,7 +221,7 @@ export function startHumanMatch() {
 }
 export function startDemo() {
   if (G.mapKey !== settings.map) loadMap(settings.map);
-  const m = G.attractNext; G.attractNext = m === 'ctf' ? 'lts' : 'ctf';
+  const m = G.attractNext; G.attractNext = { ctf: 'lts', lts: 'koth', koth: 'ctf' }[m] || 'ctf'; // the demo cycles modes
   newMatch(m, 'normal', false);
 }
 function toMenu() {
@@ -242,11 +243,13 @@ function togglePause(force) {
   else if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
 }
 export function showEnd() {
-  const w = G.winner, ctf = G.mode === 'ctf';
+  const w = G.winner, ctf = G.mode === 'ctf', koth = G.mode === 'koth';
   $('endTitle').textContent = w < 0 ? 'Draw' : `${TEAMS[w].name} wins`;
   $('endTitle').className = 'title' + (w < 0 ? '' : ' t' + w);
   $('endLede').textContent = w < 0 ? 'Dead even. Run it back?' : w === 0 ? 'Your team took the match.' : `${TEAMS[1].name} took this one. Run it back?`;
-  $('endScore').textContent = (ctf ? `Flags ${G.caps[0]} to ${G.caps[1]}` : `Rounds ${G.roundWins[0]} to ${G.roundWins[1]}`) + ` · Hits ${G.hits[0]} to ${G.hits[1]}`;
+  const [p0, p1] = G.points.map(Math.floor);
+  $('endScore').textContent = (ctf ? `Flags ${G.caps[0]} to ${G.caps[1]}` : koth ? `Points ${p0} to ${p1}`
+    : `Rounds ${G.roundWins[0]} to ${G.roundWins[1]}`) + ` · Hits ${G.hits[0]} to ${G.hits[1]}`;
   $('capsHead').hidden = !ctf;
   const body = $('statsBody'); body.textContent = '';
   const top = Math.max(...G.players.map(p => p.stats.hits));
@@ -279,13 +282,14 @@ $('soundBtn').addEventListener('click', () => { Sound.init(); toggleMute(); });
 const hud = Object.create(null);
 function setText(id, v) { if (hud[id] !== v) { hud[id] = v; $(id).textContent = v; } }
 export function updateHUD() {
-  const ctf = G.mode === 'ctf', t = Math.max(0, Math.ceil(G.time));
-  setText('modeName', ctf ? 'Capture the Flag' : 'Last Team Standing');
+  const ctf = G.mode === 'ctf', koth = G.mode === 'koth', t = Math.max(0, Math.ceil(G.time));
+  setText('modeName', MODE_NAMES[G.mode]);
   setText('clock', `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`);
-  setText('subLine', `${G.mapName} · ` + (ctf ? `first to ${CFG.ctfCapsToWin} flags` : `round ${G.round}, first to ${CFG.ltsRoundsToWin}`));
-  setText('objO', String(ctf ? G.caps[0] : G.roundWins[0]));
-  setText('objB', String(ctf ? G.caps[1] : G.roundWins[1]));
-  setText('lblO', ctf ? 'Flags' : 'Rounds'); setText('lblB', ctf ? 'Flags' : 'Rounds');
+  setText('subLine', `${G.mapName} · ` + (ctf ? `first to ${CFG.ctfCapsToWin} flags` : koth ? `first to ${CFG.kothPointsToWin} points`
+    : `round ${G.round}, first to ${CFG.ltsRoundsToWin}`));
+  const obj = ctf ? G.caps : koth ? G.points.map(Math.floor) : G.roundWins, lbl = ctf ? 'Flags' : koth ? 'Points' : 'Rounds';
+  setText('objO', String(obj[0])); setText('objB', String(obj[1]));
+  setText('lblO', lbl); setText('lblB', lbl);
   setText('hitsO', String(G.hits[0])); setText('hitsB', String(G.hits[1]));
   for (const [t2, id] of [[0, 'rosterO'], [1, 'rosterB']]) {
     const ps = G.players.filter(p => p.team === t2);
@@ -329,6 +333,7 @@ export function updateHUD() {
     if (hp.state === 'out') msg = G.fast ? 'Fast-forward on. Press F for normal speed.' : "You're out. Press F to fast-forward.";
     else if (hp.state === 'painted') { msg = inRect(hp, BASES[hp.team].wash) ? 'Washing… stay on the pad' : "You're painted. Get to your WASH pad."; wash = hp.washT / CFG.washTime; }
     else if (hp.carrying) msg = 'You have their flag. Run it home!';
+    else if (G.mode === 'koth' && onHill(hp)) msg = G.hill.contested ? 'Contested! Clear them off the hill.' : 'On the hill. Hold it!';
   }
   statusEl.hidden = !msg;
   if (msg) {

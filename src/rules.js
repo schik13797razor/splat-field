@@ -241,6 +241,26 @@ export function nextRound() {
   if (G.human) { G.phase = 'countdown'; G.count = 3; G.countSub = `Round ${G.round}`; banner('3', G.countSub, 1.1); Sound.beep(false); }
   else G.phase = 'play';
 }
+// King of the Hill: a team scores while it has active players on the hill and the other team has none.
+export const onHill = pt => Math.hypot(pt.x - G.hill.x, pt.y - G.hill.y) < G.hill.r;
+export function updateHill(dt) {
+  const h = G.hill, n = [0, 0];
+  for (const p of G.players) if (p.state === 'active' && onHill(p)) n[p.team]++;
+  const owner = n[0] && !n[1] ? 0 : n[1] && !n[0] ? 1 : -1, contested = !!(n[0] && n[1]);
+  if (owner >= 0 && owner !== h.last) {   // control changed hands (a contested moment in between doesn't count)
+    h.last = owner;
+    feed(`${TEAMS[owner].name} took the hill`, owner);
+    if (G.human) { Sound.grab(); banner(owner === 0 ? 'Hill is yours' : `${TEAMS[owner].name} has the hill`, 'Hold it to score', 1.1, 't' + owner); }
+  }
+  h.owner = owner; h.contested = contested;
+  if (owner < 0) return;
+  G.points[owner] += CFG.kothRate * dt;
+  if (G.points[owner] >= CFG.kothPointsToWin) { G.points[owner] = CFG.kothPointsToWin; endMatch(owner); }
+}
+export function kothTimeout() {
+  const [p0, p1] = G.points.map(Math.floor), [h0, h1] = G.hits;
+  endMatch(p0 !== p1 ? (p0 > p1 ? 0 : 1) : h0 !== h1 ? (h0 > h1 ? 0 : 1) : -1);
+}
 export function ctfTimeout() {
   const [c0, c1] = G.caps, [h0, h1] = G.hits;
   endMatch(c0 !== c1 ? (c0 > c1 ? 0 : 1) : h0 !== h1 ? (h0 > h1 ? 0 : 1) : -1);

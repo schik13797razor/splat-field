@@ -68,10 +68,12 @@ export function newMatch(mode, diff, human, marker = 'electro') {
   for (let t = 0; t < 2; t++) for (let i = 0; i < 3; i++) G.players.push(makePlayer(t, i, human && t === 0 && i === 0));
   placeAtSpawns();
   resetFlags();
-  G.time = mode === 'ctf' ? CFG.ctfTimeLimit : CFG.ltsRoundTime;
+  G.hill = { x: CFG.kothX, y: CFG.kothY, r: CFG.kothRadius, owner: -1, last: -1, contested: false }; // King of the Hill
+  G.points = [0, 0];
+  G.time = mode === 'ctf' ? CFG.ctfTimeLimit : mode === 'koth' ? CFG.kothTimeLimit : CFG.ltsRoundTime;
   clearPaint();
   feedEl.innerHTML = '';
   bannerEl.hidden = true;
-  if (human) { G.phase = 'countdown'; G.count = 3; G.countSub = `${mode === 'ctf' ? 'Capture the Flag' : 'Round 1'} · ${G.mapName}`; banner('3', G.countSub, 1.1); Sound.beep(false); }
+  if (human) { G.phase = 'countdown'; G.count = 3; G.countSub = `${mode === 'ctf' ? 'Capture the Flag' : mode === 'koth' ? 'King of the Hill' : 'Round 1'} · ${G.mapName}`; banner('3', G.countSub, 1.1); Sound.beep(false); }
   else G.phase = 'play';
 }

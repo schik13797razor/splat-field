@@ -1,6 +1,6 @@
 // npm run sim: bot-only balance batches through the window.__splat hook.
 //   npm run sim                         8 matches per mode, field and skill
-//   npm run sim -- --matches=20 --fields=snake --skills=normal --modes=ctf
+//   npm run sim -- --matches=20 --fields=snake --skills=normal --modes=ctf   (modes: ctf, lts, koth)
 //   npm run sim -- --seed=42            repeatable results (same seed, same numbers)
 //   npm run sim -- --workers=4          browsers running in parallel (default: half the CPU cores, max 6)
 import os from 'node:os';
@@ -14,11 +14,11 @@ const FIELD_NAMES = { snake: 'Snake Line', barrel: 'Barrel Yard', midline: 'Midl
 const matches = +arg('matches', 8);
 const fields = arg('fields', 'snake,barrel,midline,hilltop,random').split(',');
 const skills = arg('skills', 'easy,normal,hard').split(',');
-const modes = arg('modes', 'ctf,lts').split(',');
+const modes = arg('modes', 'ctf,lts,koth').split(',');
 const seed = arg('seed', null);
 const workers = +arg('workers', Math.max(1, Math.min(6, Math.floor(os.cpus().length / 2))));
-// Simulated-time cap per match. CTF ends by 6:00; LTS can run up to 5 rounds of 150 s.
-const CAP = { ctf: 420, lts: 900 };
+// Simulated-time cap per match. CTF ends by 6:00, KOTH by 5:00; LTS can run up to 5 rounds of 150 s.
+const CAP = { ctf: 420, lts: 900, koth: 360 };
 
 for (const f of fields) if (!FIELD_NAMES[f]) throw new Error(`unknown field "${f}" (use ${Object.keys(FIELD_NAMES)})`);
 
@@ -41,8 +41,8 @@ function playMatch({ field, mode, skill, seed, cap }) {
   }
   return {
     finished: G.phase === 'over', winner: G.winner, caps: G.caps[0] + G.caps[1],
-    timeout: mode === 'ctf' && Math.max(...G.caps) < S.CFG.ctfCapsToWin,
-    length: mode === 'ctf' ? S.CFG.ctfTimeLimit - G.time : null, rounds,
+    timeout: mode === 'ctf' ? Math.max(...G.caps) < S.CFG.ctfCapsToWin : mode === 'koth' ? Math.max(...G.points) < S.CFG.kothPointsToWin : false,
+    length: mode === 'ctf' ? S.CFG.ctfTimeLimit - G.time : mode === 'koth' ? S.CFG.kothTimeLimit - G.time : null, rounds,
   };
 }
 
@@ -100,6 +100,7 @@ const rows = [];
 for (const field of fields) for (const skill of skills) {
   const ctf = results.filter(r => r.field === field && r.skill === skill && r.mode === 'ctf');
   const lts = results.filter(r => r.field === field && r.skill === skill && r.mode === 'lts');
+  const koth = results.filter(r => r.field === field && r.skill === skill && r.mode === 'koth');
   rows.push([
     FIELD_NAMES[field], skill,
     ctf.length ? `${fmt(avg(ctf.map(r => r.length)))} s` : '-',
@@ -108,18 +109,22 @@ for (const field of fields) for (const skill of skills) {
     frac(ctf, r => r.winner === 1),
     lts.length ? `${fmt(avg(lts.flatMap(r => r.rounds)), 1)} s` : '-',
     frac(lts, r => r.winner === 1),
+    koth.length ? `${fmt(avg(koth.map(r => r.length)))} s` : '-',
+    frac(koth, r => r.timeout),
+    frac(koth, r => r.winner === 1),
   ]);
 }
-const head = ['Field', 'Skill', 'CTF length', 'Captures', 'Timeouts', 'CTF Blue wins', 'LTS round', 'LTS Blue wins'];
+const head = ['Field', 'Skill', 'CTF length', 'Captures', 'Timeouts', 'CTF Blue wins', 'LTS round', 'LTS Blue wins', 'KOTH length', 'KOTH timeouts', 'KOTH Blue wins'];
 const widths = head.map((h, i) => Math.max(h.length, ...rows.map(r => String(r[i]).length)));
 const line = r => r.map((c, i) => (i < 2 ? String(c).padEnd(widths[i]) : String(c).padStart(widths[i]))).join('  ');
 console.log(line(head));
 console.log(widths.map(w => '-'.repeat(w)).join('  '));
 for (const r of rows) console.log(line(r));
 
-const ctfAll = results.filter(r => r.mode === 'ctf'), ltsAll = results.filter(r => r.mode === 'lts');
+const ctfAll = results.filter(r => r.mode === 'ctf'), ltsAll = results.filter(r => r.mode === 'lts'), kothAll = results.filter(r => r.mode === 'koth');
 console.log('');
 if (ctfAll.length) console.log(`CTF overall: Blue won ${frac(ctfAll, r => r.winner === 1)}, Orange ${frac(ctfAll, r => r.winner === 0)}, draws ${frac(ctfAll, r => r.winner === -1)}`);
+if (kothAll.length) console.log(`KOTH overall: Blue won ${frac(kothAll, r => r.winner === 1)}, Orange ${frac(kothAll, r => r.winner === 0)}, draws ${frac(kothAll, r => r.winner === -1)}`);
 if (ltsAll.length) console.log(`LTS overall: Blue won ${frac(ltsAll, r => r.winner === 1)}, Orange ${frac(ltsAll, r => r.winner === 0)}, draws ${frac(ltsAll, r => r.winner === -1)}`);
 const unfinished = results.filter(r => !r.finished);
 if (unfinished.length) console.log(`Warning: ${unfinished.length} match(es) hit the simulated-time cap without finishing.`);

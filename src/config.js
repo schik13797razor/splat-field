@@ -17,6 +17,11 @@ export const CFG = {
   ctfTimeLimit: 360,
   ltsRoundsToWin: 3,
   ltsRoundTime: 150,
+  kothX: 800, kothY: 450,   // King of the Hill: the hill sits in the middle of the field
+  kothRadius: 110,
+  kothRate: 1,              // points per second for holding the hill alone
+  kothPointsToWin: 100,
+  kothTimeLimit: 300,
   shakeHit: 9,              // screen shake in pixels when you get painted
   fastForward: 3,           // game speed while you're out and press F
 };

@@ -2,11 +2,11 @@
    SPLAT FIELD: a 3v3 top-down paintball game.
    How the code is organized (one file per section, in src/):
     1. CONFIG ........ numbers you can tweak (speeds, sprint, markers, wash time, win rules)
-    2. FIELD ......... bases and the field layouts (Snake Line, Barrel Yard, Midline, random)
+    2. FIELD ......... bases and the field layouts (Snake Line, Barrel Yard, Midline, Hilltop, random)
     3. GEOMETRY ...... collision and line-of-sight math
     4. PATHFINDING ... A* search so bots can walk around bunkers
     5. GAME STATE .... players, paintballs, flags, scores
-    6. RULES ......... shooting, hits, washing, flags, rounds, winning
+    6. RULES ......... shooting, hits, washing, flags, the hill, rounds, winning
     7. BOT BRAINS .... how computer players pick targets and where to go
     8. DRAWING ....... the field, paint splats, players, effects
     9. SOUND ......... small synthesized sound effects
@@ -19,7 +19,7 @@ import { CFG, DIFF, MARKERS } from './config.js';
 import { MAPS } from './field.js';
 import { astar, COVER, randomLayout } from './pathfinding.js';
 import { G, hitMark, humanPlayer, newMatch } from './state.js';
-import { updateBalls, updatePlayers, updateFlags, checkLTS, nextRound, ctfTimeout, endMatch } from './rules.js';
+import { updateBalls, updatePlayers, updateFlags, checkLTS, nextRound, ctfTimeout, endMatch, updateHill, kothTimeout } from './rules.js';
 import { drawField, updateParticles, render } from './drawing.js';
 import { Sound } from './sound.js';
 import { $, stage, bindPointerInput, issueOrder, banner, settings, syncSettingsUI, loadMap, startHumanMatch, startDemo, showEnd, updateHUD, resize } from './ui.js';
@@ -50,6 +50,7 @@ function update(dt) {
   updateBalls(dt);
   if (G.phase === 'play') {
     if (G.mode === 'ctf') { updateFlags(dt); if (G.phase === 'play' && G.time <= 0) ctfTimeout(); }
+    else if (G.mode === 'koth') { updateHill(dt); if (G.phase === 'play' && G.time <= 0) kothTimeout(); }
     else checkLTS();
   }
   if (G.phase === 'roundEnd' && G.phaseT <= 0) { if (G.pendingWinner !== null) endMatch(G.pendingWinner); else nextRound(); }

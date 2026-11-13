@@ -187,6 +187,23 @@ export function updateParticles(dt) {
   G.parts = keep;
 }
 
+// King of the Hill: the hill glows in the holding team's color, flashes both colors when contested.
+function drawHill(c, now) {
+  const h = G.hill, contested = h.contested, own = h.owner;
+  const col = contested ? TEAMS[Math.floor(now * 4) % 2].color : own >= 0 ? TEAMS[own].color : PAL.chalk;
+  c.save(); c.translate(h.x, h.y);
+  const g = c.createRadialGradient(0, 0, h.r * 0.2, 0, 0, h.r);
+  g.addColorStop(0, hexA(col, own >= 0 || contested ? 0.05 : 0.02)); g.addColorStop(1, hexA(col, own >= 0 || contested ? 0.2 : 0.07));
+  c.fillStyle = g; circle(c, 0, 0, h.r);
+  c.strokeStyle = hexA(col, own >= 0 || contested ? 0.9 : 0.5); c.lineWidth = 3;
+  c.setLineDash([16, 10]); c.lineDashOffset = own >= 0 ? -now * 30 * (own === 0 ? 1 : -1) : 0;
+  c.beginPath(); c.arc(0, 0, h.r, 0, TAU); c.stroke(); c.setLineDash([]);
+  c.font = `14px ${FONT_DISPLAY}`; c.textAlign = 'center'; c.textBaseline = 'middle';
+  c.lineWidth = 3; c.strokeStyle = 'rgba(8,12,10,0.6)';
+  const label = contested ? 'CONTESTED' : 'HILL';
+  c.strokeText(label, 0, h.r + 16); c.fillStyle = hexA(col, 0.95); c.fillText(label, 0, h.r + 16);
+  c.restore();
+}
 function drawFlag(c, f, x, y, sc, now) {
   const T = TEAMS[f.team], wave = Math.sin(now * 6 + f.team) * 2.5;
   c.save(); c.translate(x, y); c.scale(sc, sc);
@@ -427,6 +444,7 @@ export function render() {
   c.save(); c.shadowColor = 'rgba(0,0,0,0.5)'; c.shadowBlur = 24; c.fillStyle = PAL.net; c.fillRect(0, 0, W, H); c.restore();
   c.drawImage(fieldLayer, 0, 0, W, H);
   c.drawImage(paintLayer, 0, 0, W, H);
+  if (G.mode === 'koth') drawHill(c, now);
   for (const f of G.flags) if (f.state !== 'carried') drawFlag(c, f, f.x, f.y, 1, now);
   for (const p of G.players) if (p.state === 'out' && p.outT < 4) drawOut(c, p);
   if (G.human && G.squad.cmd === 'hold' && G.phase !== 'over') drawHoldMarker(c, G.squad, now);

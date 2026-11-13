@@ -25,6 +25,10 @@ Notes for Claude Code (and for Jeff) on where this project stands as it moves ou
 ## Rules already decided with Jeff
 
 - **Teams:** Orange (Jeff + 2 bots: KIT attacker, DASH defender) vs Blue (3 bots: VEX attacker, BOLT support, MOSS defender).
+  Orange vs Blue is the default; the menu's Customize section lets you pick both team colors from Orange, Blue, Red,
+  Purple, Yellow, and Pink (never the same). Team names follow the color.
+- **Customize:** your name and your two teammates' names (up to 10 characters, shown in capitals), your jersey
+  (Stripe, Solid, Split, Hoops) and mask (Black, White, Gray, Camo), with a live preview. Saved with the settings.
 - **Scoring:** every paint hit is 1 point ("hits") for the shooter's team.
 - **Wash pad:** a painted player walks to their team's WASH pad and stands on it for 3 seconds. Stepping off pauses
   progress (doesn't reset it). Washing also refills paint and stamina, then gives 1 second of spawn protection.
@@ -33,14 +37,19 @@ Notes for Claude Code (and for Jeff) on where this project stands as it moves ou
 - **Capture the Flag:** grab the enemy flag and carry it into your base zone. A hit carrier drops it. Touching your own
   dropped flag returns it; otherwise it goes home after 15 seconds. Your own flag doesn't need to be home to score.
   First to 3 captures, 6:00 limit, tiebreak on captures then hits.
+- **King of the Hill:** a hill in the middle of the field. A team scores 1 point per second while it has players on
+  the hill and the other team has none; contested means nobody scores. Hit players wash as in CTF. First to 100
+  points, 5:00 limit, tiebreak on points then hits.
 - **Markers** (chosen in the menu; bot defenders carry a Pump):
   - Electro: 0.11 s between shots, spread 0.05 rad, range 640, 45-ball hopper, 1.6 s reload.
   - Pump: 0.5 s between shots, spread 0.008 rad, range 940, 20-ball pod, 1.3 s reload.
+  - Scatter (your choice only; bots don't carry it): 3 balls in a fan per shot, 0.55 s between shots, range 420,
+    30 balls (10 shots), 1.7 s reload.
 - **Sprint:** hold Shift for 1.5x speed. You can't shoot while sprinting. Stamina drains 0.42/s and regenerates
   0.3/s after a 0.7 s rest. Running it empty leaves you "winded" until it's back to 35%.
 - **Squad orders (keys 1-4):** follow me, hold the spot under the crosshair (clicking the on-screen button holds
   where you stand), attack, free play.
-- **Fields:** Snake Line, Barrel Yard, Midline, and Random. The left half is mirrored onto the right, and bases are
+- **Fields:** Snake Line, Barrel Yard, Midline, Hilltop (an open middle built for King of the Hill), and Random. The left half is mirrored onto the right, and bases are
   the same on every field. Random builds a new layout every match and keeps it only if pathfinding confirms every
   bot route is walkable and there's enough cover.
 - **Bot skill:** Easy / Normal / Hard (the `DIFF` table).
@@ -53,8 +62,8 @@ Notes for Claude Code (and for Jeff) on where this project stands as it moves ou
 3. `geometry.js` GEOMETRY: segment vs rectangle/circle, `raycast`, collision push-out.
 4. `pathfinding.js` PATHFINDING: 20-unit grid, A*, cover spots, `applyLayout`, `randomLayout`.
 5. `state.js` GAME STATE: `G`, `makePlayer`, `newMatch`, `hitMark` (crosshair flash timer).
-6. `rules.js` RULES: shooting, hits, wash, flags, rounds, stamina.
-7. `bots.js` BOT BRAINS: `pickTarget`, `updateBot`, attack lanes (`routeTo`), `ctfBrain`, `followOrders`, `ltsBrain`, `findCover`.
+6. `rules.js` RULES: shooting, hits, wash, flags, the hill (`updateHill`), rounds, stamina.
+7. `bots.js` BOT BRAINS: `pickTarget`, `updateBot`, attack lanes (`routeTo`), `ctfBrain`, `kothBrain`, `followOrders`, `ltsBrain`, `findCover`.
 8. `drawing.js` DRAWING: the field layer is drawn once, the paint layer keeps every splat, then players and effects.
 9. `sound.js` SOUND: Web Audio synth, field ambience.
 10. `ui.js` INPUT + UI: keyboard, mouse, touch, menus, settings saved in localStorage, HUD, `loadMap`.
@@ -142,4 +151,10 @@ After-fix table (`npm run sim -- --matches=20`): see CLAUDE.md. Blue won 123/240
 - Easy LTS rounds dropped from 33 s to 24 s once bots learned to sprint between bunkers.
 - Barrel Yard Capture the Flag runs long: Normal 5 timeouts in 20, Hard 18 in 20 (after the fairness fix).
 - Replace the drawn art and synthesized sounds with real asset packs (for example CC0 packs). Jeff wants to do this here.
+- King of the Hill on Easy often runs out the clock (7-14 of 20 matches on four fields): Easy bots miss a lot, so
+  fights on the hill drag on. Normal and Hard finish in about 4 minutes. With Jeff playing it should resolve faster.
+- The Pump is the strongest marker in bot hands: with Orange's RUSH on a Pump, Orange won ~66% of CTF matches
+  (Electro 45%, Scatter 53%). Bot defenders carry it, so it affects both teams equally today.
+- KOTH bots first sat behind the center bunker on both sides and the hill stayed contested ~70% of the time; they now
+  go around and clear enemies off a contested hill (contested ~29%).
 - Skipped for now, by Jeff's choice: an "enemy paint slows you down" mechanic, and local 2-player / online multiplayer.
