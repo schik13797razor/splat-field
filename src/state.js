@@ -24,6 +24,8 @@ const freshFx = () => ({ shake: 0, hitT: 0, hitAngle: 0, hitTeam: 1, shooter: nu
 G.fx = freshFx();
 export const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 export const hitMark = { t: 0 }; // crosshair flash after you land a hit (an object so other files can change it)
+// Your customization from the menu (ui.js fills it in from settings). Empty names fall back to YOU / KIT / DASH.
+export const custom = { name: '', mates: ['', ''], jersey: 'stripe', mask: 'black' };
 
 function freshAI(lane) {
   return { goal: null, path: [], repath: 0, think: Math.random() * 0.4, target: null, react: 0, strafe: 0, strafeT: 0,
@@ -31,7 +33,8 @@ function freshAI(lane) {
            route: [], routeKey: '', routed: false, burstLeft: 3 };
 }
 function makePlayer(team, idx, isHuman) {
-  const name = isHuman ? 'YOU' : (team === 0 && idx === 0 ? DEMO_NAME : NAMES[team][idx]);
+  const name = isHuman ? custom.name || 'YOU'
+    : team === 0 ? (idx === 0 ? DEMO_NAME : custom.mates[idx - 1] || NAMES[0][idx]) : NAMES[team][idx];
   const role = ROLES[team][idx], marker = isHuman ? G.marker : role === 'defender' ? 'pump' : 'electro';
   return {
     id: team * 3 + idx, team, idx, isHuman, name, r: CFG.playerRadius, marker,

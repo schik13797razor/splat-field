@@ -114,6 +114,37 @@
               <legend>Other team color</legend>
               <div class="swatches" id="swatches1"></div>
             </fieldset>
+            <fieldset>
+              <legend>Names</legend>
+              <div class="namerow">
+                <label class="field">You<input type="text" id="nameInput" maxlength="10" placeholder="YOU" autocomplete="off" spellcheck="false"></label>
+                <label class="field">Teammate<input type="text" id="mate1Input" maxlength="10" placeholder="KIT" autocomplete="off" spellcheck="false"></label>
+                <label class="field">Teammate<input type="text" id="mate2Input" maxlength="10" placeholder="DASH" autocomplete="off" spellcheck="false"></label>
+              </div>
+            </fieldset>
+            <div class="looks">
+              <div class="lookopts">
+                <fieldset>
+                  <legend>Jersey</legend>
+                  <div class="seg">
+                    <label><input type="radio" name="jersey" value="stripe">Stripe</label>
+                    <label><input type="radio" name="jersey" value="solid">Solid</label>
+                    <label><input type="radio" name="jersey" value="split">Split</label>
+                    <label><input type="radio" name="jersey" value="hoops">Hoops</label>
+                  </div>
+                </fieldset>
+                <fieldset>
+                  <legend>Mask</legend>
+                  <div class="seg">
+                    <label><input type="radio" name="mask" value="black">Black</label>
+                    <label><input type="radio" name="mask" value="white">White</label>
+                    <label><input type="radio" name="mask" value="gray">Gray</label>
+                    <label><input type="radio" name="mask" value="camo">Camo</label>
+                  </div>
+                </fieldset>
+              </div>
+              <canvas class="preview" id="preview" width="300" height="200" aria-label="Preview of your player"></canvas>
+            </div>
           </div>
         </details>
         <dl class="keysgrid">

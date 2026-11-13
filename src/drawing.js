@@ -1,7 +1,7 @@
 import { CFG, MK, MARKERS, TEAMS, PAL, FONT_UI, FONT_DISPLAY } from './config.js';
 import { W, H, TAU, clamp, rand, rectCenter, hexA, mulberry32 } from './util.js';
 import { BORDER, OBST, BASES } from './field.js';
-import { G, reduceMotion, hitMark, humanPlayer } from './state.js';
+import { G, reduceMotion, hitMark, humanPlayer, custom } from './state.js';
 import { mouse, touch, input } from './ui.js';
 
 /* ---------- 8. DRAWING ---------- */
@@ -202,6 +202,27 @@ function drawFlag(c, f, x, y, sc, now) {
     c.beginPath(); c.arc(x, y, 16, -Math.PI / 2, -Math.PI / 2 + TAU * k); c.stroke();
   }
 }
+// Your look from the Customize menu. Bots always wear the stripe jersey and a black mask.
+const MASKS = { black: '#1a1f24', white: '#e2e6e8', gray: '#76808a', camo: '#4d5c3a' };
+function drawJersey(c, kind, T, r) {   // drawn inside the torso clip, facing +x
+  if (kind === 'solid') return;
+  if (kind === 'split') { c.fillStyle = hexA(T.dark, 0.6); c.fillRect(-r, 0, r * 2, r * 1.2); return; }
+  c.fillStyle = hexA(T.light, kind === 'hoops' ? 0.45 : 0.32);
+  if (kind === 'hoops') { c.fillRect(-10, -r * 1.1, 2.2, r * 2.2); c.fillRect(-6.4, -r * 1.1, 2.2, r * 2.2); }
+  else c.fillRect(-5, -r * 1.1, 3.5, r * 2.2);                                     // stripe
+}
+// The player preview in the Customize menu: your player, drawn big, facing right.
+export function drawPreview(cv, name, marker) {
+  const c = cv.getContext('2d');
+  c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(0, 0, cv.width, cv.height);
+  c.fillStyle = PAL.turf; c.fillRect(0, 0, cv.width, cv.height);
+  const k = cv.height / 52;
+  c.setTransform(k, 0, 0, k, cv.width / 2 - 6 * k, cv.height / 2 + 7 * k);
+  const p = { team: 0, r: CFG.playerRadius, x: 0, y: 0, aim: -0.35, state: 'active', isHuman: true, marker, name,
+              splats: [], carrying: null, protect: 0, reloadT: 0 };
+  drawPlayer(c, p, 0);
+}
+
 // Animation state for drawing only (stride, lean, hit pop). Kept here, not on the player, so the simulation and G
 // are untouched by how players look.
 const look = new WeakMap();
@@ -253,7 +274,7 @@ function drawPlayer(c, p, now) {
   c.fillStyle = T.color; c.strokeStyle = 'rgba(10,14,18,0.8)'; c.lineWidth = 2;
   c.beginPath(); c.ellipse(-1, 0, r * 0.74, r * 1.08, 0, 0, TAU); c.fill(); c.stroke();
   c.save(); c.beginPath(); c.ellipse(-1, 0, r * 0.74, r * 1.08, 0, 0, TAU); c.clip();
-  c.fillStyle = hexA(T.light, 0.32); c.fillRect(-5, -r * 1.1, 3.5, r * 2.2);
+  drawJersey(c, p.isHuman ? custom.jersey : 'stripe', T, r);
   c.fillStyle = hexA(T.light, 0.28); blob(c, -1, -r * 0.72, r * 0.42, r * 0.24, 0); blob(c, -1, r * 0.72, r * 0.42, r * 0.24, 0);
   c.fillStyle = hexA(T.dark, 0.35); c.fillRect(-r * 0.74 - 1, -r * 1.1, r * 0.3, r * 2.2);    // shade on the back
   if (p.splats.length) {                                                  // paint on the jersey
@@ -267,8 +288,15 @@ function drawPlayer(c, p, now) {
   drawMarker(c, p.marker, r, T);
   c.fillStyle = '#15191d'; circle(c, r * 0.62, 3, 2.8); circle(c, r * 1.05, -1, 2.6);        // gloves
   // head: dark helmet and mask, team headwrap at the back, goggle lens facing forward with a glint
-  c.fillStyle = '#1a1f24'; c.strokeStyle = 'rgba(0,0,0,0.6)'; c.lineWidth = 1.2;
+  const mask = p.isHuman ? custom.mask : 'black';
+  c.fillStyle = MASKS[mask] || MASKS.black; c.strokeStyle = 'rgba(0,0,0,0.6)'; c.lineWidth = 1.2;
   c.beginPath(); c.arc(1, 0, r * 0.5, 0, TAU); c.fill(); c.stroke();
+  if (mask === 'camo') {
+    c.save(); c.beginPath(); c.arc(1, 0, r * 0.5, 0, TAU); c.clip();
+    c.fillStyle = '#2e3a22'; circle(c, -1, -3, 2.6); circle(c, 4, 3, 2.2);
+    c.fillStyle = '#7a8a52'; circle(c, 3, -3.5, 1.8); circle(c, -2.5, 3, 1.9);
+    c.restore();
+  }
   c.fillStyle = T.color; c.beginPath(); c.moveTo(1, 0); c.arc(1, 0, r * 0.5, Math.PI * 0.62, Math.PI * 1.38); c.closePath(); c.fill();
   c.fillStyle = PAL.lens; c.globalAlpha = painted ? 0.35 : 0.85;
   c.beginPath(); c.ellipse(r * 0.34, 0, r * 0.13, r * 0.36, 0, 0, TAU); c.fill();

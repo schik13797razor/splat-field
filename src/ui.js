@@ -2,9 +2,9 @@ import { CFG, MARKERS, MK, TEAMS, TEAM_COLORS, setTeamColors } from './config.js
 import { W, H, clamp, inRect } from './util.js';
 import { MAPS, BASES } from './field.js';
 import { freePoint, applyLayout, randomLayout } from './pathfinding.js';
-import { G, humanPlayer, newMatch } from './state.js';
+import { G, humanPlayer, newMatch, custom } from './state.js';
 import { speedFor, canShoot, shoot, startReload } from './rules.js';
-import { canvas, view, drawField, clearPaint } from './drawing.js';
+import { canvas, view, drawField, clearPaint, drawPreview } from './drawing.js';
 import { Sound } from './sound.js';
 
 /* ---------- 10. INPUT + UI ---------- */
@@ -142,11 +142,26 @@ export function feed(text, team) {
 }
 
 // settings (remembered in this browser when storage is available)
-export const settings = { mode: 'ctf', diff: 'normal', marker: 'electro', map: 'snake', muted: false, team0: 'orange', team1: 'blue' };
+export const settings = { mode: 'ctf', diff: 'normal', marker: 'electro', map: 'snake', muted: false, team0: 'orange', team1: 'blue',
+                          playerName: '', mate1: '', mate2: '', jersey: 'stripe', mask: 'black' };
 try { Object.assign(settings, JSON.parse(localStorage.getItem('splatfield.settings') || '{}')); } catch (e) {}
 if (!MARKERS[settings.marker]) settings.marker = 'electro';
 if (!MAPS[settings.map] && settings.map !== 'random') settings.map = 'snake';
 if (!TEAM_COLORS[settings.team0] || !TEAM_COLORS[settings.team1] || settings.team0 === settings.team1) Object.assign(settings, { team0: 'orange', team1: 'blue' });
+if (!['stripe', 'solid', 'split', 'hoops'].includes(settings.jersey)) settings.jersey = 'stripe';
+if (!['black', 'white', 'gray', 'camo'].includes(settings.mask)) settings.mask = 'black';
+// Names: up to 10 letters, digits, spaces, dots or dashes, shown in capitals like the bots' names.
+const cleanName = s => String(s || '').toUpperCase().replace(/[^A-Z0-9 .\-]/g, '').replace(/\s+/g, ' ').trim().slice(0, 10);
+const NAME_INPUTS = { nameInput: 'playerName', mate1Input: 'mate1', mate2Input: 'mate2' };
+for (const key of Object.values(NAME_INPUTS)) settings[key] = cleanName(settings[key]);
+function applyCustom() {
+  Object.assign(custom, { name: settings.playerName, mates: [settings.mate1, settings.mate2], jersey: settings.jersey, mask: settings.mask });
+  drawPreview($('preview'), settings.playerName || 'YOU', settings.marker);
+}
+for (const [id, key] of Object.entries(NAME_INPUTS)) {
+  $(id).addEventListener('input', () => { settings[key] = cleanName($(id).value); saveSettings(); applyCustom(); });
+  $(id).addEventListener('change', () => { $(id).value = settings[key]; });   // show the cleaned-up name
+}
 function saveSettings() { try { localStorage.setItem('splatfield.settings', JSON.stringify(settings)); } catch (e) {} }
 
 // Team color swatches in the Customize section (built from the palette in config.js).
@@ -157,7 +172,7 @@ for (const t of [0, 1]) for (const [key, c] of Object.entries(TEAM_COLORS)) {
   label.append(input, dot, c.name);
   $('swatches' + t).append(label);
 }
-const SETTING_RADIOS = ['mode', 'diff', 'marker', 'map', 'team0', 'team1'];
+const SETTING_RADIOS = ['mode', 'diff', 'marker', 'map', 'team0', 'team1', 'jersey', 'mask'];
 // Recolor both teams everywhere: the drawing palette, the page's CSS colors, and team names in the text.
 function applyTeamColors() {
   setTeamColors(settings.team0, settings.team1);
@@ -171,7 +186,9 @@ export function syncSettingsUI() {
   $('markerHint').textContent = MARKERS[settings.marker].hint;
   Sound.setMuted(!!settings.muted);
   $('soundBtn').textContent = settings.muted ? 'Sound: off' : 'Sound: on';
+  for (const [id, key] of Object.entries(NAME_INPUTS)) if (document.activeElement !== $(id)) $(id).value = settings[key];
   applyTeamColors();
+  applyCustom();
 }
 for (const name of SETTING_RADIOS) {
   document.querySelectorAll(`input[name="${name}"]`).forEach(el => el.addEventListener('change', () => {
@@ -237,7 +254,7 @@ export function showEnd() {
     const tr = document.createElement('tr');
     const td0 = document.createElement('td'), who = document.createElement('span'), dot = document.createElement('span');
     who.className = 'who'; dot.className = 'dot'; dot.style.background = TEAMS[p.team].color;
-    who.append(dot, p.isHuman ? 'You' : p.name);
+    who.append(dot, p.name === 'YOU' ? 'You' : p.name);
     if (top > 0 && p.stats.hits === top) { const m = document.createElement('span'); m.className = 'mvp'; m.textContent = 'MVP'; who.append(m); }
     td0.append(who); tr.append(td0);
     const cells = [p.stats.hits, p.stats.painted].concat(ctf ? [p.stats.caps] : []);
