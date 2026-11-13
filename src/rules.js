@@ -7,6 +7,7 @@ import { updateBot } from './bots.js';
 import { splat, burst, muzzlePuff, dust, washDrop } from './drawing.js';
 import { Sound } from './sound.js';
 import { updateHuman, aimHuman, banner, feed } from './ui.js';
+import { noteHumanHit, noteHumanPainted } from './stats.js';
 
 /* ---------- 6. RULES ---------- */
 export const isHittable = p => p.state === 'active' && p.protect <= 0;
@@ -93,6 +94,7 @@ export function updateBalls(dt) {
 // Somebody got painted: the shooter's team scores a hit point.
 function registerHit(v, shooter, x, y, ang) {
   G.hits[shooter.team]++; shooter.stats.hits++; v.stats.painted++;
+  if (G.human) { if (shooter.isHuman) noteHumanHit(); if (v.isHuman) noteHumanPainted(); }   // career hit streak
   bodySplat(v, shooter.team, x, y);
   splat(v.x + Math.cos(ang) * (v.r + 7), v.y + Math.sin(ang) * (v.r + 7), shooter.team, rand(9, 12), ang);
   burst(x, y, shooter.team, 10);

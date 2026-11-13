@@ -54,7 +54,7 @@ Code plans, builds, and tests a game. `HANDOFF.md` has the full history and open
   (`.github/workflows/deploy.yml`), but only after `npm test` passes on GitHub; a failing test leaves the live site on
   the last good version. Pushing `master` is a public release: push only when Jeff asks.
 - `npm test` (`tests/smoke.js`, about 15 s): loads the game in headless Chromium, plays a real match through the menu
-  and controls, sweeps every field × mode with bots, and fails on any page error or `console.error` (failed Google
+  and controls, finishes it and checks the end screen and saved stats, sweeps every field × mode with bots, and fails on any page error or `console.error` (failed Google
   Fonts requests are ignored). Run it after every change.
 - `npm run sim` (`tests/sim.js`): bot-only balance batches, printed as one table per field × skill. Defaults to 8
   matches per setting (360 matches, about 40 s). Options: `--matches=N --fields=snake,barrel,midline,hilltop,random
@@ -118,7 +118,9 @@ property: anything a bot reads about other players must be the same for both tea
 
 One file per numbered section in `src/`: `config` (1, every tunable number), `field` (2), `geometry` (3),
 `pathfinding` (4), `state` (5), `rules` (6), `bots` (7), `drawing` (8), `sound` (9), `ui` (10), `main` (11, entry
-point). `util.js` holds shared math helpers and `W`/`H` (field size in game units, 1600×900).
+point). `util.js` holds shared math helpers and `W`/`H` (field size in game units, 1600×900). `stats.js` keeps your
+career stats and personal bests (localStorage `splatfield.stats`); it imports nothing, `rules.js` reports your hits
+and paints to it during your own matches, and `showEnd()` records the finished match. It never touches `G`.
 
 - **Shared state lives in `G`** (`state.js`). It's one mutable object that every section reads and writes: phase
   (`countdown | play | roundEnd | over`), mode, players, balls, flags, scores, effects. `newMatch` resets it in place.

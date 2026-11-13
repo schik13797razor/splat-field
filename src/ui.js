@@ -4,6 +4,7 @@ import { MAPS, BASES } from './field.js';
 import { freePoint, applyLayout, randomLayout } from './pathfinding.js';
 import { G, humanPlayer, newMatch, custom } from './state.js';
 import { speedFor, canShoot, shoot, startReload, onHill } from './rules.js';
+import { career, MODES, SKILLS, resetCareer, startMatchStats, recordMatch, matchesPlayed, matchesWon, clockText } from './stats.js';
 const MODE_NAMES = { ctf: 'Capture the Flag', lts: 'Last Team Standing', koth: 'King of the Hill' };
 import { canvas, view, drawField, clearPaint, drawPreview } from './drawing.js';
 import { Sound } from './sound.js';
@@ -217,6 +218,7 @@ export function startHumanMatch() {
   releaseInputs();
   menuEl.hidden = pauseEl.hidden = endEl.hidden = true;
   if (!settings.seenHelp) { settings.seenHelp = true; saveSettings(); }
+  startMatchStats();
   if (settings.map === 'random' || G.mapKey !== settings.map) loadMap(settings.map); // a fresh random field every match
   newMatch(settings.mode, settings.diff, true, settings.marker);
   stage.classList.add('playing');
@@ -254,6 +256,29 @@ export function showEnd() {
   $('endScore').textContent = (ctf ? `Flags ${G.caps[0]} to ${G.caps[1]}` : koth ? `Points ${p0} to ${p1}`
     : `Rounds ${G.roundWins[0]} to ${G.roundWins[1]}`) + ` · Hits ${G.hits[0]} to ${G.hits[1]}`;
   $('capsHead').hidden = !ctf;
+  // career stats: record this match, then show any new personal bests and your record for this mode and skill
+  const hp = humanPlayer();
+  if (hp) {
+    const seconds = ctf ? CFG.ctfTimeLimit - G.time : koth ? CFG.kothTimeLimit - G.time : 0;
+    const res = recordMatch({ mode: G.mode, diff: G.diff, won: w === 0, hits: hp.stats.hits, painted: hp.stats.painted,
+                              caps: hp.stats.caps, hillPoints: koth ? p0 : 0, seconds });
+    const box = $('endBests'); box.textContent = '';
+    for (const b of res.bests) {
+      const fmt = v => b.key === 'fastestCtfWin' ? clockText(v) : String(v);
+      const line = document.createElement('p'), tag = document.createElement('b');
+      tag.className = 'newbest'; tag.textContent = 'New best!';
+      line.append(tag, ` ${b.label}: ${fmt(b.value)}` + (b.was ? ` (was ${fmt(b.was)})` : ''));
+      box.append(line);
+    }
+    if (res.rec) {
+      const line = document.createElement('p'); line.className = 'fhint';
+      line.textContent = `Your record in ${MODE_NAMES[G.mode]} on ${G.diff[0].toUpperCase() + G.diff.slice(1)}: ` +
+        `${res.rec.won} won of ${res.rec.played}` + (res.winStreak > 1 ? ` · ${res.winStreak} wins in a row` : '');
+      box.append(line);
+    }
+    box.hidden = !box.childElementCount;
+    renderStats();
+  }
   const body = $('statsBody'); body.textContent = '';
   const top = Math.max(...G.players.map(p => p.stats.hits));
   for (const p of G.players) {
@@ -271,6 +296,37 @@ export function showEnd() {
   stage.classList.remove('playing');
   $('againBtn').focus({ preventScroll: true });
 }
+
+// "Your stats" in the menu (stats.js keeps the numbers; this only shows them)
+function renderStats() {
+  const played = matchesPlayed(), won = matchesWon(), t = career.totals, B = career.best;
+  $('statsHint').textContent = played ? `${played} played · ${won} won` : 'No matches yet';
+  const cards = [
+    ['Matches', played], ['Wins', played ? `${won} (${Math.round(won / played * 100)}%)` : 0],
+    ['Hits', t.hits], ['Times painted', t.painted], ['Flags captured', t.caps], ['Hill points', t.hillPoints],
+  ];
+  const cardsEl = $('statCards'); cardsEl.textContent = '';
+  for (const [label, v] of cards) {
+    const d = document.createElement('div'), n = document.createElement('b'), l = document.createElement('span');
+    n.textContent = String(v); l.textContent = label; d.append(n, l); cardsEl.append(d);
+  }
+  const bests = [
+    ['Most hits in a match', B.hitsInMatch || '–'], ['Best hit streak in one life', B.hitStreak || '–'],
+    ['Longest win streak', B.winStreak || '–'], ['Fastest Capture the Flag win', B.fastestCtfWin ? clockText(B.fastestCtfWin) : '–'],
+  ];
+  const bl = $('bestList'); bl.textContent = '';
+  for (const [label, v] of bests) { const dt = document.createElement('dt'), dd = document.createElement('dd'); dt.textContent = label; dd.textContent = String(v); bl.append(dt, dd); }
+  const body = $('recordBody'); body.textContent = '';
+  for (const m of MODES) {
+    const tr = document.createElement('tr'), th = document.createElement('td'); th.textContent = MODE_NAMES[m]; tr.append(th);
+    for (const s of SKILLS) { const r = career.record[m][s], td = document.createElement('td'); td.textContent = r.played ? `${r.won} / ${r.played}` : '–'; tr.append(td); }
+    body.append(tr);
+  }
+}
+renderStats();
+$('resetStats').addEventListener('click', () => {
+  if (confirm('Reset all your stats and personal bests? This can’t be undone.')) { resetCareer(); renderStats(); }
+});
 
 $('playBtn').addEventListener('click', startHumanMatch);
 $('resumeBtn').addEventListener('click', () => togglePause(false));

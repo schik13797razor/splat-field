@@ -137,6 +137,27 @@
             </fieldset>
           </div>
         </details>
+        <details class="custom" id="statsPanel">
+          <summary>Your stats<span class="fhint" id="statsHint">No matches yet</span></summary>
+          <div class="custgrid">
+            <div class="statcards" id="statCards"></div>
+            <fieldset>
+              <legend>Personal bests</legend>
+              <dl class="bestlist" id="bestList"></dl>
+            </fieldset>
+            <fieldset>
+              <legend>Wins / matches played</legend>
+              <div class="tablewrap">
+                <table class="stats record">
+                  <thead><tr><th>Mode</th><th>Easy</th><th>Normal</th><th>Hard</th></tr></thead>
+                  <tbody id="recordBody"></tbody>
+                </table>
+              </div>
+            </fieldset>
+            <p class="fhint">Saved in this browser. Only your own finished matches count.
+              <button class="linkbtn" id="resetStats" type="button">Reset stats</button></p>
+          </div>
+        </details>
         <details class="custom" id="customize">
           <summary>Customize<span class="fhint">Team colors and your player</span></summary>
           <div class="custgrid">
@@ -205,6 +226,7 @@
           <p class="lede" id="endLede"></p>
         </div>
         <p class="score" id="endScore"></p>
+        <div class="bests" id="endBests" hidden></div>
         <div class="tablewrap">
           <table class="stats">
             <thead><tr><th>Player</th><th>Hits</th><th>Painted</th><th id="capsHead">Flags</th></tr></thead>

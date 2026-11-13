@@ -52,6 +52,14 @@ try {
   check(await page.evaluate(() => !window.__splat.G.paused), 'Resume unpauses');
   await page.waitForTimeout(500);
 
+  // Finish the match (run the clock out) and check the end screen and career stats.
+  await page.evaluate(() => { window.__splat.G.time = 0.01; });
+  await page.waitForSelector('#endMenu:not([hidden])', { timeout: 6000 });
+  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('splatfield.stats') || 'null'));
+  check(saved && saved.record.ctf.normal.played === 1, 'finished match shows the end screen and is saved to stats');
+  await page.click('#menuBtn');
+  check((await page.textContent('#statsHint')).startsWith('1 played'), 'menu stats show the match');
+
   // 3. Every field and mode, bots only, 30 simulated seconds each, drawn at the end.
   const sweep = await page.evaluate(() => {
     const S = window.__splat, out = [];
