@@ -56,7 +56,7 @@ try {
   const sweep = await page.evaluate(() => {
     const S = window.__splat, out = [];
     let seed = 1;
-    for (const map of ['snake', 'barrel', 'midline', 'random']) for (const mode of ['ctf', 'lts']) {
+    for (const map of ['snake', 'barrel', 'midline', 'hilltop', 'random']) for (const mode of ['ctf', 'lts']) {
       window.__seed(seed++);
       S.loadMap(map);
       S.newMatch(mode, 'normal', false);

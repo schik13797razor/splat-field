@@ -45,6 +45,19 @@ export const MAPS = {
     circles: [{ x: 600, y: 450, r: 30 }, { x: 400, y: 300, r: 22 }, { x: 400, y: 600, r: 22 }, { x: 680, y: 120, r: 22 }, { x: 680, y: 780, r: 22 }],
     ccircles: [],
   },
+  // an open middle (the King of the Hill spot) ringed by cans and two cakes, long snakes up the flanks
+  hilltop: { name: 'Hilltop',
+    rects: [
+      { x: 290, y: 412, w: 48, h: 76, kind: 'temple' },
+      { x: 250, y: 200, w: 56, h: 56, kind: 'cake' }, { x: 250, y: 644, w: 56, h: 56, kind: 'cake' },
+      { x: 420, y: 64, w: 220, h: 30, kind: 'snake' }, { x: 420, y: 806, w: 220, h: 30, kind: 'snake' },
+      { x: 470, y: 250, w: 34, h: 120, kind: 'wall' }, { x: 470, y: 530, w: 34, h: 120, kind: 'wall' },
+      { x: 600, y: 150, w: 50, h: 50, kind: 'cake' }, { x: 600, y: 700, w: 50, h: 50, kind: 'cake' },
+    ],
+    crects: [{ x: 775, y: 300, w: 50, h: 50, kind: 'cake' }, { x: 775, y: 550, w: 50, h: 50, kind: 'cake' }],
+    circles: [{ x: 420, y: 450, r: 26 }, { x: 640, y: 380, r: 24 }, { x: 640, y: 520, r: 24 }],
+    ccircles: [],
+  },
 };
 
 export const OBST = [];

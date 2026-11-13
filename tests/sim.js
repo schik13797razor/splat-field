@@ -10,9 +10,9 @@ const arg = (name, def) => {
   const a = process.argv.find(x => x.startsWith(`--${name}=`));
   return a ? a.slice(name.length + 3) : def;
 };
-const FIELD_NAMES = { snake: 'Snake Line', barrel: 'Barrel Yard', midline: 'Midline', random: 'Random' };
+const FIELD_NAMES = { snake: 'Snake Line', barrel: 'Barrel Yard', midline: 'Midline', hilltop: 'Hilltop', random: 'Random' };
 const matches = +arg('matches', 8);
-const fields = arg('fields', 'snake,barrel,midline,random').split(',');
+const fields = arg('fields', 'snake,barrel,midline,hilltop,random').split(',');
 const skills = arg('skills', 'easy,normal,hard').split(',');
 const modes = arg('modes', 'ctf,lts').split(',');
 const seed = arg('seed', null);

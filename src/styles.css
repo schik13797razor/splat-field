@@ -174,7 +174,7 @@ legend { font-size: 11.5px; letter-spacing: 0.14em; text-transform: uppercase; c
 .seg { display: inline-grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 1.5px; background: var(--line); border: 1.5px solid var(--line); border-radius: 10px; overflow: hidden; }
 .seg label { position: relative; padding: 8px 16px; font-weight: 700; text-align: center; cursor: pointer; background: var(--panel); white-space: nowrap; }
 .seg label:has(input:checked) { background: var(--chalk); color: var(--chrome); }
-.seg.wide { display: grid; grid-auto-flow: row; grid-template-columns: repeat(4, 1fr); }
+.seg.wide { display: grid; grid-auto-flow: row; grid-template-columns: repeat(5, 1fr); }
 .opts { display: flex; flex-wrap: wrap; gap: 14px 26px; align-items: start; }
 .opts .grow { flex: 1 1 200px; }
 .fhint { margin: 6px 0 0; font-size: 13px; color: var(--muted); }
@@ -228,7 +228,7 @@ kbd { font-family: var(--ui); font-weight: 700; color: var(--text); background: 
   .hhint { display: none; }
   .status { bottom: 70px; }
   .sq span { display: none; }
-  .seg.wide { grid-template-columns: repeat(2, 1fr); }
+  .seg.wide { grid-template-columns: repeat(3, 1fr); }
 }
 @media (max-height: 940px) and (min-width: 721px) {
   .keysgrid { display: none; } /* the same keys are listed in the footer bar */
