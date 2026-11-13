@@ -10,8 +10,8 @@
   --text: #eef3ec;
   --muted: #9fb2a5;
   --chalk: #f5f8f2;
-  --orange: #ff6a1f;
-  --blue: #2e9bff;
+  --team0: #ff6a1f;   /* your team color; ui.js updates both from the Customize menu */
+  --team1: #2e9bff;
   --wash: #7fd6ff;
   --stamina: #d4e86a;
   --scrim: rgba(8, 13, 10, 0.58);
@@ -61,13 +61,13 @@ body {
 .team { display: flex; align-items: center; gap: 16px; min-width: 0; }
 .team-b { flex-direction: row-reverse; }
 .tag { font-family: var(--display); font-size: 21px; letter-spacing: 0.04em; display: flex; align-items: center; gap: 8px; }
-.team-o .tag, .team-o .obj .big { color: var(--orange); }
-.team-b .tag, .team-b .obj .big { color: var(--blue); }
+.team-o .tag, .team-o .obj .big { color: var(--team0); }
+.team-b .tag, .team-b .obj .big { color: var(--team1); }
 .team-b .tag { flex-direction: row-reverse; }
 .chip { width: 12px; height: 12px; border-radius: 50%; background: currentColor; }
 .roster { display: flex; gap: 6px; }
-.team-o .roster { color: var(--orange); }
-.team-b .roster { color: var(--blue); flex-direction: row-reverse; }
+.team-o .roster { color: var(--team0); }
+.team-b .roster { color: var(--team1); flex-direction: row-reverse; }
 .roster i { width: 11px; height: 11px; border-radius: 50%; background: currentColor; border: 2px solid currentColor; }
 .roster i.painted { background: transparent; }
 .roster i.out { opacity: 0.22; }
@@ -96,14 +96,14 @@ body {
 }
 .banner .bsub { font-family: var(--ui); font-weight: 700; font-size: clamp(13px, 1.6vw, 18px); letter-spacing: 0.18em; text-transform: uppercase; }
 .banner .bmain { font-family: var(--display); font-size: clamp(30px, 5.4vw, 70px); line-height: 1; }
-.banner.t0 .bmain { color: var(--orange); }
-.banner.t1 .bmain { color: var(--blue); }
+.banner.t0 .bmain { color: var(--team0); }
+.banner.t1 .bmain { color: var(--team1); }
 @keyframes pop { from { transform: translateX(-50%) scale(1.22); opacity: 0; } to { transform: translateX(-50%) scale(1); opacity: 1; } }
 
 .feed { position: absolute; top: 10px; right: 12px; margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; justify-items: end; pointer-events: none; max-width: 46%; }
 .feed li { background: rgba(10, 15, 12, 0.76); border-left: 3px solid var(--line); padding: 3px 10px; border-radius: 4px; font-size: 13.5px; font-weight: 600; transition: opacity 0.8s; }
-.feed li.t0 { border-left-color: var(--orange); }
-.feed li.t1 { border-left-color: var(--blue); }
+.feed li.t0 { border-left-color: var(--team0); }
+.feed li.t1 { border-left-color: var(--team1); }
 .feed li.fade { opacity: 0; }
 
 .status {
@@ -125,14 +125,14 @@ body {
 .hnum { font-variant-numeric: tabular-nums; color: var(--muted); font-weight: 600; font-size: 13px; }
 .hnum b { color: var(--text); font-size: 20px; font-weight: 700; }
 .hopper .meter b { background: var(--chalk); }
-.hopper.low .meter b { background: var(--orange); }
+.hopper.low .meter b { background: var(--team0); }
 .hopper.reloading .meter b { background: var(--wash); }
 .hhint { font-size: 12.5px; color: var(--muted); font-weight: 600; }
 .srow { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 8px; }
 .hopper .stam { height: 4px; }
 .hopper .stam b { background: var(--stamina); }
 .hopper .stam.winded b { background: var(--muted); }
-.hopper.low .hhint { color: var(--orange); }
+.hopper.low .hhint { color: var(--team0); }
 .hopper.reloading .hhint { color: var(--wash); }
 
 .squad {
@@ -158,8 +158,8 @@ body {
 .head { display: grid; gap: 6px; }
 .title { font-family: var(--display); font-weight: 400; font-size: clamp(38px, 6.5vw, 60px); line-height: 0.95; letter-spacing: 0.02em; margin: 0; text-wrap: balance; color: var(--chalk); }
 .title.sm { font-size: 40px; }
-.title .o, .title.t0 { color: var(--orange); }
-.title .b, .title.t1 { color: var(--blue); }
+.title .o, .title.t0 { color: var(--team0); }
+.title .b, .title.t1 { color: var(--team1); }
 .lede { margin: 0; color: var(--muted); font-size: 16px; max-width: 60ch; }
 .score { margin: 0; font-weight: 700; font-size: 17px; font-variant-numeric: tabular-nums; }
 fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
@@ -178,10 +178,22 @@ legend { font-size: 11.5px; letter-spacing: 0.14em; text-transform: uppercase; c
 .opts { display: flex; flex-wrap: wrap; gap: 14px 26px; align-items: start; }
 .opts .grow { flex: 1 1 200px; }
 .fhint { margin: 6px 0 0; font-size: 13px; color: var(--muted); }
+/* Customize: a fold-out section so the main menu stays short */
+.custom { border: 1.5px solid var(--line); border-radius: 10px; background: var(--panel-2); }
+.custom summary { cursor: pointer; padding: 10px 14px; font-weight: 700; font-size: 16px; display: flex; align-items: baseline; gap: 10px; }
+.custom summary .fhint { margin: 0; font-weight: 500; }
+.custom summary:focus-visible { outline: 2px solid var(--wash); outline-offset: 2px; border-radius: 10px; }
+.custgrid { display: grid; gap: 14px; padding: 4px 14px 14px; }
+.swatches { display: flex; flex-wrap: wrap; gap: 6px; }
+.swatches label { position: relative; display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px 6px 8px; border: 1.5px solid var(--line); border-radius: 999px; background: var(--panel); font-weight: 700; font-size: 14px; cursor: pointer; }
+.swatches input { position: absolute; opacity: 0; pointer-events: none; }
+.swatches .sw { width: 14px; height: 14px; border-radius: 50%; box-shadow: inset 0 0 0 1.5px rgba(0, 0, 0, 0.35); }
+.swatches label:has(input:checked) { border-color: var(--chalk); background: var(--panel-sel); }
+.swatches label:has(input:focus-visible) { outline: 2px solid var(--wash); outline-offset: 2px; }
 .row { display: flex; flex-wrap: wrap; gap: 10px; }
 .btn { font: inherit; font-weight: 700; font-size: 16px; border-radius: 10px; padding: 11px 20px; border: 1.5px solid var(--line); background: var(--panel-2); color: var(--text); cursor: pointer; }
 .btn:hover { border-color: var(--muted); }
-.btn.primary { background: var(--orange); border-color: var(--orange); color: #1d0c03; font-size: 19px; letter-spacing: 0.05em; text-transform: uppercase; }
+.btn.primary { background: var(--team0); border-color: var(--team0); color: #1d0c03; font-size: 19px; letter-spacing: 0.05em; text-transform: uppercase; }
 .btn.primary:hover { filter: brightness(1.08); }
 .btn:focus-visible { outline: 2px solid var(--wash); outline-offset: 2px; }
 #playBtn { width: 100%; }

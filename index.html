@@ -12,8 +12,8 @@
 <div id="app">
   <header class="board" aria-label="Scoreboard">
     <div class="team team-o">
-      <div class="tag"><span class="chip"></span>Orange</div>
-      <div class="roster" id="rosterO" aria-label="Orange players"></div>
+      <div class="tag"><span class="chip"></span><span class="tn0">Orange</span></div>
+      <div class="roster" id="rosterO" aria-label="Your team's players"></div>
       <div class="obj"><span class="big" id="objO">0</span><span class="lbl" id="lblO">Flags</span></div>
       <div class="hits"><b id="hitsO">0</b> hits</div>
     </div>
@@ -23,8 +23,8 @@
       <div class="sub" id="subLine">First to 3 flags</div>
     </div>
     <div class="team team-b">
-      <div class="tag"><span class="chip"></span>Blue</div>
-      <div class="roster" id="rosterB" aria-label="Blue players"></div>
+      <div class="tag"><span class="chip"></span><span class="tn1">Blue</span></div>
+      <div class="roster" id="rosterB" aria-label="Other team's players"></div>
       <div class="obj"><span class="big" id="objB">0</span><span class="lbl" id="lblB">Flags</span></div>
       <div class="hits"><b id="hitsB">0</b> hits</div>
     </div>
@@ -56,7 +56,7 @@
       <div class="panel">
         <div class="head">
           <h1 class="title" id="menuTitle"><span class="o">Splat</span> <span class="b">Field</span></h1>
-          <p class="lede">3 v 3 paintball. You lead Orange with two bots beside you. Every paintball that lands is a point for your team.</p>
+          <p class="lede">3 v 3 paintball. You lead <span class="tn0">Orange</span> with two bots beside you. Every paintball that lands is a point for your team.</p>
         </div>
         <fieldset>
           <legend>Game mode</legend>
@@ -64,12 +64,12 @@
             <label class="choice">
               <input type="radio" name="mode" value="lts" id="modeLts">
               <strong>Last Team Standing</strong>
-              <span>One hit and you're out for the round. Clear out Blue to win it. First team to 3 rounds.</span>
+              <span>One hit and you're out for the round. Clear out <span class="tn1">Blue</span> to win it. First team to 3 rounds.</span>
             </label>
             <label class="choice">
               <input type="radio" name="mode" value="ctf" id="modeCtf">
               <strong>Capture the Flag</strong>
-              <span>Grab Blue's flag and run it to your base. Get hit and you drop it, then wash off for 3 seconds. First to 3 flags.</span>
+              <span>Grab <span class="tn1">Blue</span>'s flag and run it to your base. Get hit and you drop it, then wash off for 3 seconds. First to 3 flags.</span>
             </label>
           </div>
         </fieldset>
@@ -103,6 +103,19 @@
           </div>
         </fieldset>
         <button class="btn primary" id="playBtn" type="button">Play</button>
+        <details class="custom" id="customize">
+          <summary>Customize<span class="fhint">Team colors and your player</span></summary>
+          <div class="custgrid">
+            <fieldset>
+              <legend>Your team color</legend>
+              <div class="swatches" id="swatches0"></div>
+            </fieldset>
+            <fieldset>
+              <legend>Other team color</legend>
+              <div class="swatches" id="swatches1"></div>
+            </fieldset>
+          </div>
+        </details>
         <dl class="keysgrid">
           <dt><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></dt><dd>Move</dd>
           <dt>Mouse</dt><dd>Aim</dd>

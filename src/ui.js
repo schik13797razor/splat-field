@@ -1,4 +1,4 @@
-import { CFG, MARKERS, MK, TEAMS } from './config.js';
+import { CFG, MARKERS, MK, TEAMS, TEAM_COLORS, setTeamColors } from './config.js';
 import { W, H, clamp, inRect } from './util.js';
 import { MAPS, BASES } from './field.js';
 import { freePoint, applyLayout, randomLayout } from './pathfinding.js';
@@ -98,6 +98,7 @@ export function bindPointerInput() {
 
 const playing = () => G.human && !G.paused && G.phase !== 'over';
 window.addEventListener('keydown', e => {
+  if (e.target instanceof HTMLInputElement && e.target.type === 'text') return; // typing a name, not playing
   if (e.code === 'Escape' || e.code === 'KeyP') { if (G.human) { togglePause(); e.preventDefault(); } return; }
   if (e.code === 'KeyM') { toggleMute(); return; }
   if (playing() && ['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) e.preventDefault();
@@ -141,21 +142,46 @@ export function feed(text, team) {
 }
 
 // settings (remembered in this browser when storage is available)
-export const settings = { mode: 'ctf', diff: 'normal', marker: 'electro', map: 'snake', muted: false };
+export const settings = { mode: 'ctf', diff: 'normal', marker: 'electro', map: 'snake', muted: false, team0: 'orange', team1: 'blue' };
 try { Object.assign(settings, JSON.parse(localStorage.getItem('splatfield.settings') || '{}')); } catch (e) {}
 if (!MARKERS[settings.marker]) settings.marker = 'electro';
 if (!MAPS[settings.map] && settings.map !== 'random') settings.map = 'snake';
+if (!TEAM_COLORS[settings.team0] || !TEAM_COLORS[settings.team1] || settings.team0 === settings.team1) Object.assign(settings, { team0: 'orange', team1: 'blue' });
 function saveSettings() { try { localStorage.setItem('splatfield.settings', JSON.stringify(settings)); } catch (e) {} }
+
+// Team color swatches in the Customize section (built from the palette in config.js).
+for (const t of [0, 1]) for (const [key, c] of Object.entries(TEAM_COLORS)) {
+  const label = document.createElement('label'), input = document.createElement('input'), dot = document.createElement('span');
+  input.type = 'radio'; input.name = 'team' + t; input.value = key;
+  dot.className = 'sw'; dot.style.background = c.color;
+  label.append(input, dot, c.name);
+  $('swatches' + t).append(label);
+}
+const SETTING_RADIOS = ['mode', 'diff', 'marker', 'map', 'team0', 'team1'];
+// Recolor both teams everywhere: the drawing palette, the page's CSS colors, and team names in the text.
+function applyTeamColors() {
+  setTeamColors(settings.team0, settings.team1);
+  for (const t of [0, 1]) {
+    document.documentElement.style.setProperty('--team' + t, TEAMS[t].color);
+    document.querySelectorAll('.tn' + t).forEach(el => { el.textContent = TEAMS[t].name; });
+  }
+}
 export function syncSettingsUI() {
-  for (const name of ['mode', 'diff', 'marker', 'map']) for (const el of document.querySelectorAll(`input[name="${name}"]`)) el.checked = el.value === settings[name];
+  for (const name of SETTING_RADIOS) for (const el of document.querySelectorAll(`input[name="${name}"]`)) el.checked = el.value === settings[name];
   $('markerHint').textContent = MARKERS[settings.marker].hint;
   Sound.setMuted(!!settings.muted);
   $('soundBtn').textContent = settings.muted ? 'Sound: off' : 'Sound: on';
+  applyTeamColors();
 }
-for (const name of ['mode', 'diff', 'marker', 'map']) {
+for (const name of SETTING_RADIOS) {
   document.querySelectorAll(`input[name="${name}"]`).forEach(el => el.addEventListener('change', () => {
+    if (name === 'team0' || name === 'team1') {
+      const other = name === 'team0' ? 'team1' : 'team0';
+      if (settings[other] === el.value) settings[other] = settings[name];  // picked the other team's color: swap
+    }
     settings[name] = el.value; saveSettings(); syncSettingsUI();
     if (name === 'map') { loadMap(el.value); G.attractNext = G.mode; startDemo(); } // preview the field behind the menu
+    if (name === 'team0' || name === 'team1') { drawField(); G.attractNext = G.mode; startDemo(); } // repaint bases, fresh paint
   }));
 }
 function toggleMute() { settings.muted = !settings.muted; saveSettings(); syncSettingsUI(); }
@@ -202,7 +228,7 @@ export function showEnd() {
   const w = G.winner, ctf = G.mode === 'ctf';
   $('endTitle').textContent = w < 0 ? 'Draw' : `${TEAMS[w].name} wins`;
   $('endTitle').className = 'title' + (w < 0 ? '' : ' t' + w);
-  $('endLede').textContent = w < 0 ? 'Dead even. Run it back?' : w === 0 ? 'Your team took the match.' : 'Blue took this one. Run it back?';
+  $('endLede').textContent = w < 0 ? 'Dead even. Run it back?' : w === 0 ? 'Your team took the match.' : `${TEAMS[1].name} took this one. Run it back?`;
   $('endScore').textContent = (ctf ? `Flags ${G.caps[0]} to ${G.caps[1]}` : `Rounds ${G.roundWins[0]} to ${G.roundWins[1]}`) + ` · Hits ${G.hits[0]} to ${G.hits[1]}`;
   $('capsHead').hidden = !ctf;
   const body = $('statsBody'); body.textContent = '';

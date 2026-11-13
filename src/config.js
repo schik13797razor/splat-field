@@ -45,10 +45,22 @@ export const MARKERS = {
 };
 export const MK = p => MARKERS[p.marker];
 
-export const TEAMS = [
-  { name: 'Orange', color: '#ff6a1f', dark: '#a8400c', light: '#ffc6a3', trail: 'rgba(255,106,31,0.38)' },
-  { name: 'Blue',   color: '#2e9bff', dark: '#1458a3', light: '#bfe0ff', trail: 'rgba(46,155,255,0.38)' },
-];
+// Team colors you can pick in the menu (Customize). Orange vs Blue is the default. A team's name follows its color.
+export const TEAM_COLORS = {
+  orange: { name: 'Orange', color: '#ff6a1f', dark: '#a8400c', light: '#ffc6a3', trail: 'rgba(255,106,31,0.38)' },
+  blue:   { name: 'Blue',   color: '#2e9bff', dark: '#1458a3', light: '#bfe0ff', trail: 'rgba(46,155,255,0.38)' },
+  red:    { name: 'Red',    color: '#f0383d', dark: '#9a1418', light: '#ffb9b6', trail: 'rgba(240,56,61,0.38)' },
+  purple: { name: 'Purple', color: '#a45cff', dark: '#5c27a6', light: '#dcc6ff', trail: 'rgba(164,92,255,0.38)' },
+  yellow: { name: 'Yellow', color: '#ffd21f', dark: '#9c7f05', light: '#fff0a6', trail: 'rgba(255,210,31,0.38)' },
+  pink:   { name: 'Pink',   color: '#ff4fb0', dark: '#a3206a', light: '#ffc3e4', trail: 'rgba(255,79,176,0.38)' },
+};
+// TEAMS[0] is your team, TEAMS[1] the other. Other files keep references to these two objects, so recoloring
+// changes them in place.
+export const TEAMS = [{ ...TEAM_COLORS.orange }, { ...TEAM_COLORS.blue }];
+export function setTeamColors(c0, c1) {
+  Object.assign(TEAMS[0], TEAM_COLORS[c0] || TEAM_COLORS.orange);
+  Object.assign(TEAMS[1], TEAM_COLORS[c1] || TEAM_COLORS.blue);
+}
 export const PAL = {
   turf: '#2d6839', net: '#141c17', chalk: '#f5f8f2',
   bunker: '#3d4853', bunkerHi: '#5d6a77', bunkerLo: '#28303a', bunkerEdge: '#1b2127',
