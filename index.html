@@ -108,6 +108,35 @@
           </div>
         </fieldset>
         <button class="btn primary" id="playBtn" type="button">Play</button>
+        <details class="custom" id="howto">
+          <summary>How to play<span class="fhint">Controls and the basics</span></summary>
+          <div class="custgrid">
+            <fieldset>
+              <legend>Controls</legend>
+              <dl class="keysgrid">
+                <dt><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></dt><dd>Move (arrow keys work too)</dd>
+                <dt>Mouse</dt><dd>Aim</dd>
+                <dt>Left click</dt><dd>Shoot (hold to keep firing)</dd>
+                <dt><kbd>Shift</kbd></dt><dd>Sprint (no shooting)</dd>
+                <dt><kbd>R</kbd></dt><dd>Reload</dd>
+                <dt><kbd>1</kbd>–<kbd>4</kbd></dt><dd>Squad orders</dd>
+                <dt><kbd>F</kbd></dt><dd>Fast-forward when you're out</dd>
+                <dt><kbd>Esc</kbd></dt><dd>Pause</dd>
+                <dt><kbd>M</kbd></dt><dd>Sound on or off</dd>
+              </dl>
+            </fieldset>
+            <fieldset>
+              <legend>The basics</legend>
+              <ul class="basics">
+                <li>You're the player with the white ring. Two bots play on your team, three on the other.</li>
+                <li>Every paintball that hits someone is a point for your team.</li>
+                <li>Got hit? Walk to your team's <b>WASH</b> pad and stand on it for 3 seconds to get back in. It refills your paint too. (In Last Team Standing, one hit and you're out for the round.)</li>
+                <li>Your hopper runs dry: watch the paint meter and press <kbd>R</kbd> in a quiet moment. Sprinting uses stamina and you can't shoot while you do it.</li>
+                <li>Squad orders for your two bots: <kbd>1</kbd> follow me, <kbd>2</kbd> hold the spot under your crosshair, <kbd>3</kbd> attack, <kbd>4</kbd> back to normal.</li>
+              </ul>
+            </fieldset>
+          </div>
+        </details>
         <details class="custom" id="customize">
           <summary>Customize<span class="fhint">Team colors and your player</span></summary>
           <div class="custgrid">
@@ -152,17 +181,6 @@
             </div>
           </div>
         </details>
-        <dl class="keysgrid">
-          <dt><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></dt><dd>Move</dd>
-          <dt>Mouse</dt><dd>Aim</dd>
-          <dt>Left click</dt><dd>Shoot (hold to keep firing)</dd>
-          <dt><kbd>Shift</kbd></dt><dd>Sprint (no shooting)</dd>
-          <dt><kbd>R</kbd></dt><dd>Reload</dd>
-          <dt><kbd>1</kbd>–<kbd>4</kbd></dt><dd>Squad orders</dd>
-          <dt><kbd>F</kbd></dt><dd>Fast-forward when out</dd>
-          <dt><kbd>Esc</kbd></dt><dd>Pause</dd>
-          <dt><kbd>M</kbd></dt><dd>Sound on or off</dd>
-        </dl>
         <p class="touchnote" id="touchNote" hidden>Built for keyboard and mouse. On a phone, turn it sideways: drag on the left side to move, and touch the right side to aim and shoot.</p>
       </div>
     </section>
@@ -175,6 +193,8 @@
           <button class="btn" id="restartBtn" type="button">Restart</button>
           <button class="btn" id="quitBtn" type="button">Main menu</button>
         </div>
+        <p class="pausekeys"><kbd>WASD</kbd> move · mouse aim · click shoot · <kbd>Shift</kbd> sprint · <kbd>R</kbd> reload ·
+          <kbd>1</kbd>–<kbd>4</kbd> squad (follow, hold, attack, free) · <kbd>F</kbd> fast-forward when out · <kbd>M</kbd> sound</p>
       </div>
     </section>
 

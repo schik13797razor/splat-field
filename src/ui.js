@@ -164,6 +164,8 @@ for (const [id, key] of Object.entries(NAME_INPUTS)) {
   $(id).addEventListener('change', () => { $(id).value = settings[key]; });   // show the cleaned-up name
 }
 function saveSettings() { try { localStorage.setItem('splatfield.settings', JSON.stringify(settings)); } catch (e) {} }
+// First visit: open "How to play" so new players see the controls. It stays folded once they've played a match.
+if (!settings.seenHelp) $('howto').open = true;
 
 // Team color swatches in the Customize section (built from the palette in config.js).
 for (const t of [0, 1]) for (const [key, c] of Object.entries(TEAM_COLORS)) {
@@ -214,6 +216,7 @@ export function startHumanMatch() {
   Sound.init();
   releaseInputs();
   menuEl.hidden = pauseEl.hidden = endEl.hidden = true;
+  if (!settings.seenHelp) { settings.seenHelp = true; saveSettings(); }
   if (settings.map === 'random' || G.mapKey !== settings.map) loadMap(settings.map); // a fresh random field every match
   newMatch(settings.mode, settings.diff, true, settings.marker);
   stage.classList.add('playing');
