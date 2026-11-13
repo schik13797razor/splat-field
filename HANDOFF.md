@@ -149,7 +149,10 @@ After-fix table (`npm run sim -- --matches=20`): see CLAUDE.md. Blue won 123/240
 ## Open items and ideas
 
 - Easy LTS rounds dropped from 33 s to 24 s once bots learned to sprint between bunkers.
-- Barrel Yard Capture the Flag runs long: Normal 5 timeouts in 20, Hard 18 in 20 (after the fairness fix).
+- Barrel Yard Capture the Flag ran long (Hard: 18 of 20 timeouts). Bots grabbed the flag as often as on other fields,
+  but 81% of carriers were hit before getting home, mostly right at the flag. Fixed 2026-11-13 by adding a short wall
+  in front of each flag, a can beside each flag, and cans along the escape lanes (tested 4 variants, 40 matches each):
+  Hard now 214 s with 4/20 timeouts, Normal 199 s with 0/20.
 - Replace the drawn art and synthesized sounds with real asset packs (for example CC0 packs). Jeff wants to do this here.
 - King of the Hill on Easy often runs out the clock (7-14 of 20 matches on four fields): Easy bots miss a lot, so
   fights on the hill drag on. Normal and Hard finish in about 4 minutes. With Jeff playing it should resolve faster.

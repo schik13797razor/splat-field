@@ -85,12 +85,13 @@ timeouts, LTS round):
 | Field | Easy | Normal | Hard |
 |---|---|---|---|
 | Snake Line | 125 s, 4.3, 0/20; 28.0 s | 113 s, 4.0, 0/20; 21.4 s | 185 s, 4.0, 2/20; 16.6 s |
-| Barrel Yard | 144 s, 4.0, 0/20; 31.0 s | 232 s, 3.3, 5/20; 23.8 s | 336 s, 2.0, 18/20; 17.3 s |
+| Barrel Yard* | 135 s, 4.5, 0/20; 29.1 s | 199 s, 4.3, 0/20; 22.0 s | 214 s, 3.9, 4/20; 18.5 s |
 | Midline | 95 s, 4.3, 0/20; 28.8 s | 144 s, 4.2, 0/20; 22.9 s | 167 s, 4.2, 0/20; 18.4 s |
 | Random | 124 s, 4.3, 0/20; 27.9 s | 205 s, 4.0, 3/20; 22.6 s | 259 s, 3.4, 5/20; 16.6 s |
 | Hilltop | 113 s, 4.0, 0/20; 27.9 s | 147 s, 4.2, 0/20; 22.6 s | 184 s, 4.0, 1/20; 17.6 s |
 
-Blue won 123/240 CTF and 113/240 LTS (Hilltop: 28/60 each). Random field generator: 300/300 valid, ~3 ms each.
+*Barrel Yard re-run 2026-11-13 after adding a short wall and cans near each flag and along the escape lanes (it was
+336 s and 18/20 timeouts on Hard). Blue won 123/240 CTF and 113/240 LTS (Hilltop: 28/60 each). Random field generator: 300/300 valid, ~3 ms each.
 
 King of the Hill (`--modes=koth --matches=20`, 2026-11-12; match length / timeouts):
 
@@ -104,7 +105,7 @@ King of the Hill (`--modes=koth --matches=20`, 2026-11-12; match length / timeou
 
 KOTH fairness: 600 seeded matches gave Blue 49.4%. Winners finish near 100 points, losers around 75.
 
-Open balance items: Barrel Yard CTF runs long (Hard almost always times out). KOTH on Easy often times out (Easy
+Open balance items: KOTH on Easy often times out (Easy
 bots miss, so hill fights drag on). The Pump is the strongest marker in bot hands: with Orange's RUSH on a Pump,
 Orange won ~66% of CTF matches (Electro 45%, Scatter 53%, 300 matches each).
 

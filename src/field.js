@@ -19,14 +19,20 @@ export const MAPS = {
     circles: [{ x: 432, y: 330, r: 24 }, { x: 432, y: 570, r: 24 }, { x: 622, y: 450, r: 28 }],
     ccircles: [{ x: 800, y: 450, r: 44 }],
   },
-  // lots of round cans: angles everywhere, very little hard cover
+  // lots of round cans: angles everywhere, very little hard cover. The short wall and the cans beside each flag and
+  // along the escape lanes give flag carriers a chance (without them, 9 in 10 Hard CTF matches ran out the clock).
   barrel: { name: 'Barrel Yard',
-    rects: [{ x: 380, y: 60, w: 120, h: 30, kind: 'snake' }, { x: 380, y: 810, w: 120, h: 30, kind: 'snake' }],
+    rects: [
+      { x: 380, y: 60, w: 120, h: 30, kind: 'snake' }, { x: 380, y: 810, w: 120, h: 30, kind: 'snake' },
+      { x: 262, y: 412, w: 40, h: 76, kind: 'temple' },
+    ],
     crects: [],
     circles: [
       { x: 300, y: 210, r: 26 }, { x: 300, y: 690, r: 26 }, { x: 390, y: 450, r: 30 },
       { x: 470, y: 310, r: 24 }, { x: 470, y: 590, r: 24 }, { x: 560, y: 150, r: 28 }, { x: 560, y: 750, r: 28 },
       { x: 620, y: 450, r: 26 }, { x: 700, y: 280, r: 30 }, { x: 700, y: 620, r: 30 },
+      { x: 250, y: 330, r: 22 }, { x: 250, y: 600, r: 22 },                                     // beside the flag
+      { x: 380, y: 160, r: 20 }, { x: 380, y: 740, r: 20 }, { x: 640, y: 80, r: 22 }, { x: 640, y: 820, r: 22 }, // escape lanes
     ],
     ccircles: [{ x: 800, y: 450, r: 40 }, { x: 800, y: 160, r: 24 }, { x: 800, y: 740, r: 24 }],
   },
