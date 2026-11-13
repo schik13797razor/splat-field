@@ -35,14 +35,16 @@ function volAt(x, y) {
 function fire(p, angle, spread) {
   const m = MK(p), a = angle + (Math.random() * 2 - 1) * spread;
   G.balls.push({ x: p.x, y: p.y, vx: Math.cos(a) * m.speed, vy: Math.sin(a) * m.speed, team: p.team, owner: p, traveled: 0, range: m.range });
-  muzzlePuff(p, angle);
-  Sound.shot(volAt(p.x, p.y) * (p.isHuman ? 1 : 0.7), p.marker);
 }
-// Hopper: every shot uses one paintball. Run dry and the reload starts on its own. No shooting while sprinting.
+// Hopper: every ball fired uses one paintball (the Scatter fires 3 per shot). Run dry and the reload starts on its
+// own. No shooting while sprinting.
 export const canShoot = p => p.state === 'active' && p.cool <= 0 && p.reloadT <= 0 && p.ammo > 0 && !p.sprinting;
 export function shoot(p, angle, spread) {
-  fire(p, angle, spread);
-  p.ammo--;
+  const m = MK(p), k = m.pellets || 1;
+  for (let i = 0; i < k; i++) fire(p, angle + (i - (k - 1) / 2) * (m.fan || 0), spread);
+  muzzlePuff(p, angle);
+  Sound.shot(volAt(p.x, p.y) * (p.isHuman ? 1 : 0.7), p.marker);
+  p.ammo = Math.max(0, p.ammo - k);
   if (p.ammo <= 0) startReload(p);
 }
 export function startReload(p) {

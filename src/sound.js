@@ -68,6 +68,9 @@ export const Sound = (() => {
       if (kind === 'pump') { // deeper crack, then the "chk-chk" of the pump racking the next ball
         nz(t, { f: 1500, q: 0.8, dur: 0.07, vol: 0.13 * v }); tn(t, { f: 150, f2: 65, dur: 0.09, vol: 0.09 * v, type: 'triangle' });
         nz(t + 0.17, { f: 950, q: 6, dur: 0.035, vol: 0.07 * v }); nz(t + 0.27, { f: 780, q: 6, dur: 0.035, vol: 0.06 * v });
+      } else if (kind === 'scatter') { // a fat, chunky thump: three balls leaving at once
+        nz(t, { f: 1100, q: 0.6, dur: 0.09, vol: 0.15 * v }); tn(t, { f: 130, f2: 50, dur: 0.11, vol: 0.1 * v, type: 'triangle' });
+        nz(t + 0.012, { f: 1900, q: 1.2, dur: 0.04, vol: 0.06 * v });
       } else { nz(t, { f: 2400, q: 0.9, dur: 0.045, vol: 0.09 * v }); tn(t, { f: 210, f2: 90, dur: 0.05, vol: 0.06 * v, type: 'triangle' }); }
     },
     whistle(long) { // referee whistle: two close pitches with a fast flutter

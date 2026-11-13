@@ -1,4 +1,4 @@
-import { CFG, MK, TEAMS, PAL, FONT_UI, FONT_DISPLAY } from './config.js';
+import { CFG, MK, MARKERS, TEAMS, PAL, FONT_UI, FONT_DISPLAY } from './config.js';
 import { W, H, TAU, clamp, rand, rectCenter, hexA, mulberry32 } from './util.js';
 import { BORDER, OBST, BASES } from './field.js';
 import { G, reduceMotion, hitMark, humanPlayer } from './state.js';
@@ -161,7 +161,7 @@ export function burst(x, y, team, n) {
 }
 // puff of air at the barrel tip
 export function muzzlePuff(p, angle) {
-  const L = p.r + (p.marker === 'pump' ? 26 : 14), x = p.x + Math.cos(angle) * L, y = p.y + Math.sin(angle) * L;
+  const L = p.r + MK(p).barrel, x = p.x + Math.cos(angle) * L, y = p.y + Math.sin(angle) * L;
   for (let i = 0; i < 2; i++) G.parts.push({ x, y, vx: Math.cos(angle) * rand(40, 90) + rand(-20, 20), vy: Math.sin(angle) * rand(40, 90) + rand(-20, 20),
     life: rand(0.16, 0.26), t: 0, color: '#e8eee6', r: rand(2.5, 4), a: 0.35, grow: 14, stain: null });
 }
@@ -302,6 +302,15 @@ function drawMarker(c, kind, r, T) {
     c.fillStyle = 'rgba(0,0,0,0.3)'; for (const hx of [x0 + 18.5, x0 + 21.5]) c.fillRect(hx, -3.4, 1, 6.8); // grip ridges
     c.fillStyle = 'rgba(20,24,28,0.9)'; rrPath(c, x0 + 1.5, -2.6, 9, 5.2, 2.4); c.fill(); // feed tube
     c.fillStyle = T.color; for (const bx of [x0 + 4, x0 + 7.5]) circle(c, bx, 0, 1.7);
+  } else if (kind === 'scatter') {
+    // short, wide barrel that flares at the muzzle, with a small loader
+    const end = r + MARKERS.scatter.barrel;                                             // where the muzzle puff appears
+    c.fillStyle = PAL.marker; c.fillRect(x0, -3.6, end - x0 - 4, 7.2);
+    c.beginPath(); c.moveTo(end - 5, -3.6); c.lineTo(end, -5.2); c.lineTo(end, 5.2); c.lineTo(end - 5, 3.6); c.closePath(); c.fill();
+    c.fillStyle = PAL.markerHi; c.fillRect(x0, -4.8, 11, 9.6); c.fillRect(end - 7, -4.2, 2, 8.4);
+    c.fillStyle = 'rgba(0,0,0,0.45)'; for (const by of [-2.2, 0, 2.2]) circle(c, end - 0.6, by, 0.9); // three bores
+    c.fillStyle = 'rgba(18,22,26,0.92)'; c.beginPath(); c.ellipse(x0 + 7, 0, 5, 4.2, 0, 0, TAU); c.fill();
+    c.fillStyle = T.color; circle(c, x0 + 6, -1.2, 1.6); circle(c, x0 + 8.2, 1.3, 1.6);
   } else {
     c.fillStyle = PAL.marker; c.fillRect(x0, -2.8, r + 10, 5.6);
     c.fillStyle = PAL.markerHi; c.fillRect(x0 + r + 7, -3.4, 3, 6.8);                  // muzzle
