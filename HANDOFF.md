@@ -37,9 +37,9 @@ Notes for Claude Code (and for Jeff) on where this project stands as it moves ou
 - **Capture the Flag:** grab the enemy flag and carry it into your base zone. A hit carrier drops it. Touching your own
   dropped flag returns it; otherwise it goes home after 15 seconds. Your own flag doesn't need to be home to score.
   First to 3 captures, 6:00 limit, tiebreak on captures then hits.
-- **King of the Hill:** a hill in the middle of the field. A team scores 1 point per second while it has players on
-  the hill and the other team has none; contested means nobody scores. Hit players wash as in CTF. First to 100
-  points, 5:00 limit, tiebreak on points then hits.
+- **King of the Hill:** a hill in the middle of the field. The team with more players on the hill scores 1 point per
+  second; an equal number means contested and nobody scores. Hit players wash as in CTF. First to 80 points, 5:00
+  limit, tiebreak on points then hits.
 - **Markers** (chosen in the menu; bot defenders carry a Pump):
   - Electro: 0.11 s between shots, spread 0.05 rad, range 640, 45-ball hopper, 1.6 s reload.
   - Pump: 0.5 s between shots, spread 0.008 rad, range 940, 20-ball pod, 1.3 s reload.
@@ -154,8 +154,10 @@ After-fix table (`npm run sim -- --matches=20`): see CLAUDE.md. Blue won 123/240
   in front of each flag, a can beside each flag, and cans along the escape lanes (tested 4 variants, 40 matches each):
   Hard now 214 s with 4/20 timeouts, Normal 199 s with 0/20.
 - Replace the drawn art and synthesized sounds with real asset packs (for example CC0 packs). Jeff wants to do this here.
-- King of the Hill on Easy often runs out the clock (7-14 of 20 matches on four fields): Easy bots miss a lot, so
-  fights on the hill drag on. Normal and Hard finish in about 4 minutes. With Jeff playing it should resolve faster.
+- King of the Hill on Easy ran out the clock in ~4 of 10 matches (Easy bots miss, so the hill stayed contested).
+  Jeff picked a rule change on 2026-11-13 after a test of four options on the same seeded matches: the team with
+  more players on the hill scores (equal = contested), and the target is 80 instead of 100. Now 0/300 timeouts,
+  about 3 minutes per match on every skill, Blue 50.2% of 600.
 - The Pump is the strongest marker in bot hands: with Orange's RUSH on a Pump, Orange won ~66% of CTF matches
   (Electro 45%, Scatter 53%). Bot defenders carry it, so it affects both teams equally today.
 - KOTH bots first sat behind the center bunker on both sides and the hill stayed contested ~70% of the time; they now

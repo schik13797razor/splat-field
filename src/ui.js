@@ -392,7 +392,8 @@ export function updateHUD() {
     if (hp.state === 'out') msg = G.fast ? 'Fast-forward on. Press F for normal speed.' : "You're out. Press F to fast-forward.";
     else if (hp.state === 'painted') { msg = inRect(hp, BASES[hp.team].wash) ? 'Washing… stay on the pad' : "You're painted. Get to your WASH pad."; wash = hp.washT / CFG.washTime; }
     else if (hp.carrying) msg = 'You have their flag. Run it home!';
-    else if (G.mode === 'koth' && onHill(hp)) msg = G.hill.contested ? 'Contested! Clear them off the hill.' : 'On the hill. Hold it!';
+    else if (G.mode === 'koth' && onHill(hp)) msg = G.hill.contested ? 'Contested! Even numbers on the hill. Press 3 to bring your squad.'
+      : G.hill.owner === 0 ? 'Your team holds the hill. Keep it!' : 'Outnumbered on the hill! Press 3 to bring your squad.';
   }
   statusEl.hidden = !msg;
   if (msg) {

@@ -243,12 +243,12 @@ export function nextRound() {
   if (G.human) { G.phase = 'countdown'; G.count = 3; G.countSub = `Round ${G.round}`; banner('3', G.countSub, 1.1); Sound.beep(false); }
   else G.phase = 'play';
 }
-// King of the Hill: a team scores while it has active players on the hill and the other team has none.
+// King of the Hill: the team with more active players on the hill scores. An equal number (both > 0) is contested.
 export const onHill = pt => Math.hypot(pt.x - G.hill.x, pt.y - G.hill.y) < G.hill.r;
 export function updateHill(dt) {
   const h = G.hill, n = [0, 0];
   for (const p of G.players) if (p.state === 'active' && onHill(p)) n[p.team]++;
-  const owner = n[0] && !n[1] ? 0 : n[1] && !n[0] ? 1 : -1, contested = !!(n[0] && n[1]);
+  const owner = n[0] > n[1] ? 0 : n[1] > n[0] ? 1 : -1, contested = n[0] > 0 && n[0] === n[1];
   if (owner >= 0 && owner !== h.last) {   // control changed hands (a contested moment in between doesn't count)
     h.last = owner;
     feed(`${TEAMS[owner].name} took the hill`, owner);

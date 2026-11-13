@@ -30,9 +30,10 @@ Code plans, builds, and tests a game. `HANDOFF.md` has the full history and open
 - **Capture the Flag:** carry the enemy flag into your base zone; your own flag doesn't need to be home. A hit carrier
   drops it. Touching your own dropped flag returns it; otherwise it goes home after 15 s. First to 3 captures, 6:00
   limit, tiebreak on captures then hits.
-- **King of the Hill:** a hill (radius 110) in the middle of the field. A team scores 1 point per second while it has
-  active players on the hill and the other team has none (contested = nobody scores). Hit players wash as in CTF.
-  First to 100 points, 5:00 limit, tiebreak on points then hits.
+- **King of the Hill:** a hill (radius 110) in the middle of the field. The team with more active players on the hill
+  scores 1 point per second; an equal number is contested (nobody scores). Hit players wash as in CTF. First to 80
+  points, 5:00 limit, tiebreak on points then hits. (Changed 2026-11-13 from "hold it alone, first to 100", which ran
+  out the clock in ~4 of 10 Easy matches.)
 - **Markers** (menu choice; bot defenders carry a Pump): Electro 0.11 s between shots, spread 0.05 rad, range 640,
   45 balls, 1.6 s reload. Pump 0.5 s, 0.008 rad, range 940, 20 balls, 1.3 s reload. Scatter (player choice only):
   3 balls in a fan (0.12 rad apart) per shot, 0.55 s, 0.035 rad, range 420, 30 balls, 1.7 s reload.
@@ -76,7 +77,7 @@ while (S.G.phase !== 'over') S.step(1 / 60);   // cap at 420 simulated seconds
 
 What the balance tests measure: for CTF, average match length, captures, timeouts (neither team reached 3), and Blue
 wins; for LTS, average round length and Blue wins; for KOTH, average match length, timeouts (neither team reached
-100), and Blue wins. For Random, generate 300 fields with different seeds and count
+80), and Blue wins. For Random, generate 300 fields with different seeds and count
 fallbacks to Snake Line.
 
 Latest results (`npm run sim -- --matches=20`, 2026-11-12, after the fair-update fix; CTF length / captures /
@@ -93,20 +94,19 @@ timeouts, LTS round):
 *Barrel Yard re-run 2026-11-13 after adding a short wall and cans near each flag and along the escape lanes (it was
 336 s and 18/20 timeouts on Hard). Blue won 123/240 CTF and 113/240 LTS (Hilltop: 28/60 each). Random field generator: 300/300 valid, ~3 ms each.
 
-King of the Hill (`--modes=koth --matches=20`, 2026-11-12; match length / timeouts):
+King of the Hill (`--modes=koth --matches=20`, 2026-11-13, majority rule and first to 80; match length / timeouts):
 
 | Field | Easy | Normal | Hard |
 |---|---|---|---|
-| Snake Line | 294 s, 11/20 | 256 s, 0/20 | 246 s, 0/20 |
-| Barrel Yard | 291 s, 12/20 | 254 s, 0/20 | 240 s, 0/20 |
-| Midline | 273 s, 7/20 | 255 s, 1/20 | 233 s, 0/20 |
-| Hilltop | 223 s, 0/20 | 238 s, 0/20 | 242 s, 0/20 |
-| Random | 291 s, 14/20 | 259 s, 1/20 | 258 s, 0/20 |
+| Snake Line | 191 s, 0/20 | 174 s, 0/20 | 179 s, 0/20 |
+| Barrel Yard | 185 s, 0/20 | 181 s, 0/20 | 172 s, 0/20 |
+| Midline | 175 s, 0/20 | 176 s, 0/20 | 180 s, 0/20 |
+| Hilltop | 177 s, 0/20 | 191 s, 0/20 | 192 s, 0/20 |
+| Random | 176 s, 0/20 | 185 s, 0/20 | 175 s, 0/20 |
 
-KOTH fairness: 600 seeded matches gave Blue 49.4%. Winners finish near 100 points, losers around 75.
+KOTH fairness: 600 seeded matches gave Blue 50.2% (53.3% with the update order reversed).
 
-Open balance items: KOTH on Easy often times out (Easy
-bots miss, so hill fights drag on). The Pump is the strongest marker in bot hands: with Orange's RUSH on a Pump,
+Open balance item: the Pump is the strongest marker in bot hands: with Orange's RUSH on a Pump,
 Orange won ~66% of CTF matches (Electro 45%, Scatter 53%, 300 matches each).
 
 **Team fairness.** Bot-only matches should split about 50/50. Blue used to win ~57% because `updatePlayers`
