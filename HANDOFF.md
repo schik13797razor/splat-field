@@ -158,8 +158,11 @@ After-fix table (`npm run sim -- --matches=20`): see CLAUDE.md. Blue won 123/240
   Jeff picked a rule change on 2026-11-13 after a test of four options on the same seeded matches: the team with
   more players on the hill scores (equal = contested), and the target is 80 instead of 100. Now 0/300 timeouts,
   about 3 minutes per match on every skill, Blue 50.2% of 600.
-- The Pump is the strongest marker in bot hands: with Orange's RUSH on a Pump, Orange won ~66% of CTF matches
-  (Electro 45%, Scatter 53%). Bot defenders carry it, so it affects both teams equally today.
+- The Pump was the strongest marker in bot hands: with Orange's RUSH on a Pump, Orange won ~66% of CTF matches.
+  Aim alone wasn't the edge (long range lets Pump bots shoot first); the delay between shots mattered most. Fixed
+  2026-11-13 by changing only the bot numbers (aim factor 0.45 -> 0.9, delay 2.1 -> 2.8): RUSH-with-Pump now wins
+  49.5% CTF / 53.8% LTS, level with the Electro (50.5% / 50.0%), 210 matches each. Your own Pump is unchanged.
+  Side effect: bot defenders (both teams) are weaker, so CTF Easy/Normal matches are ~25-40% shorter.
 - KOTH bots first sat behind the center bunker on both sides and the hill stayed contested ~70% of the time; they now
   go around and clear enemies off a contested hill (contested ~29%).
 - Skipped for now, by Jeff's choice: an "enemy paint slows you down" mechanic, and local 2-player / online multiplayer.

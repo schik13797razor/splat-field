@@ -80,34 +80,26 @@ wins; for LTS, average round length and Blue wins; for KOTH, average match lengt
 80), and Blue wins. For Random, generate 300 fields with different seeds and count
 fallbacks to Snake Line.
 
-Latest results (`npm run sim -- --matches=20`, 2026-11-12, after the fair-update fix; CTF length / captures /
-timeouts, LTS round):
+Latest results (`npm run sim -- --matches=20`, 2026-11-13, after the Pump bot tuning; CTF length / captures / timeouts;
+LTS round; KOTH length / timeouts):
 
 | Field | Easy | Normal | Hard |
 |---|---|---|---|
-| Snake Line | 125 s, 4.3, 0/20; 28.0 s | 113 s, 4.0, 0/20; 21.4 s | 185 s, 4.0, 2/20; 16.6 s |
-| Barrel Yard* | 135 s, 4.5, 0/20; 29.1 s | 199 s, 4.3, 0/20; 22.0 s | 214 s, 3.9, 4/20; 18.5 s |
-| Midline | 95 s, 4.3, 0/20; 28.8 s | 144 s, 4.2, 0/20; 22.9 s | 167 s, 4.2, 0/20; 18.4 s |
-| Random | 124 s, 4.3, 0/20; 27.9 s | 205 s, 4.0, 3/20; 22.6 s | 259 s, 3.4, 5/20; 16.6 s |
-| Hilltop | 113 s, 4.0, 0/20; 27.9 s | 147 s, 4.2, 0/20; 22.6 s | 184 s, 4.0, 1/20; 17.6 s |
+| Snake Line | 83 s, 4.0, 0/20; 28.7 s; 178 s, 0/20 | 88 s, 4.0, 0/20; 21.1 s; 177 s, 0/20 | 163 s, 4.3, 0/20; 16.6 s; 176 s, 0/20 |
+| Barrel Yard | 101 s, 4.3, 0/20; 34.8 s; 174 s, 0/20 | 148 s, 4.2, 0/20; 24.3 s; 172 s, 0/20 | 241 s, 3.6, 6/20; 18.5 s; 166 s, 0/20 |
+| Midline | 71 s, 4.3, 0/20; 32.9 s; 188 s, 0/20 | 102 s, 4.1, 0/20; 25.5 s; 182 s, 0/20 | 179 s, 4.0, 1/20; 18.2 s; 174 s, 0/20 |
+| Hilltop | 99 s, 4.2, 0/20; 27.2 s; 174 s, 0/20 | 117 s, 4.0, 0/20; 23.8 s; 171 s, 0/20 | 189 s, 4.2, 0/20; 18.0 s; 191 s, 0/20 |
+| Random | 120 s, 4.0, 1/20; 28.4 s; 188 s, 0/20 | 160 s, 3.9, 0/20; 21.8 s; 173 s, 0/20 | 238 s, 3.0, 9/20; 17.7 s; 174 s, 0/20 |
 
-*Barrel Yard re-run 2026-11-13 after adding a short wall and cans near each flag and along the escape lanes (it was
-336 s and 18/20 timeouts on Hard). Blue won 123/240 CTF and 113/240 LTS (Hilltop: 28/60 each). Random field generator: 300/300 valid, ~3 ms each.
+Blue won 154/300 CTF, 159/300 LTS, 148/300 KOTH. Random field generator: 300/300 valid, ~3 ms each.
+Fairness checks: CTF 1,200 matches Blue 51.1% (fair-update fix); KOTH 600 matches Blue 50.2%.
 
-King of the Hill (`--modes=koth --matches=20`, 2026-11-13, majority rule and first to 80; match length / timeouts):
+History: Barrel Yard Hard CTF was 336 s with 18/20 timeouts before its flag cover was added; KOTH Easy timed out ~4 in
+10 under the old "hold it alone, first to 100" rule; the bot Pump (aim factor 0.45, delay 2.1) won ~66% of CTF
+matches when one Orange bot carried it. Bot Pump is now aim 0.9, delay 2.8 (level with Electro and Scatter in that
+test), which made bot defense weaker on both teams, so CTF Easy/Normal matches got ~25-40% shorter.
 
-| Field | Easy | Normal | Hard |
-|---|---|---|---|
-| Snake Line | 191 s, 0/20 | 174 s, 0/20 | 179 s, 0/20 |
-| Barrel Yard | 185 s, 0/20 | 181 s, 0/20 | 172 s, 0/20 |
-| Midline | 175 s, 0/20 | 176 s, 0/20 | 180 s, 0/20 |
-| Hilltop | 177 s, 0/20 | 191 s, 0/20 | 192 s, 0/20 |
-| Random | 176 s, 0/20 | 185 s, 0/20 | 175 s, 0/20 |
-
-KOTH fairness: 600 seeded matches gave Blue 50.2% (53.3% with the update order reversed).
-
-Open balance item: the Pump is the strongest marker in bot hands: with Orange's RUSH on a Pump,
-Orange won ~66% of CTF matches (Electro 45%, Scatter 53%, 300 matches each).
+No open balance items. Worth watching: Hard CTF on Barrel Yard and Random fields still times out sometimes.
 
 **Team fairness.** Bot-only matches should split about 50/50. Blue used to win ~57% because `updatePlayers`
 handled each player in team order and let it move immediately, so Blue (second) aimed at Orange's fresh position.

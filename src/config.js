@@ -44,7 +44,7 @@ export const MARKERS = {
   electro: { name: 'Electro', hint: 'Rapid fire and a big 45-ball hopper, but shorter range and more spray.',
              fireDelay: 0.11, spread: 0.05, speed: 980, range: 640, hopper: 45, reload: 1.6, barrel: 14, botDelay: 1.0, botAim: 1.1, botSight: 1.0 },
   pump:    { name: 'Pump', hint: 'One pinpoint shot at a time, long range, 20-ball pod with a quick swap.',
-             fireDelay: 0.5, spread: 0.008, speed: 1200, range: 940, hopper: 20, reload: 1.3, barrel: 26, botDelay: 2.1, botAim: 0.45, botSight: 1.2 },
+             fireDelay: 0.5, spread: 0.008, speed: 1200, range: 940, hopper: 20, reload: 1.3, barrel: 26, botDelay: 2.8, botAim: 0.9, botSight: 1.2 },
   scatter: { name: 'Scatter', hint: 'Three balls in a fan with every shot. Deadly up close around bunkers, weak at range. 30 balls.',
              fireDelay: 0.55, spread: 0.035, pellets: 3, fan: 0.12, speed: 900, range: 420, hopper: 30, reload: 1.7, barrel: 18, botDelay: 1.9, botAim: 0.8, botSight: 1.0 },
 };
