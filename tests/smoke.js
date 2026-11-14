@@ -70,20 +70,21 @@ try {
   check(await phone.evaluate(() => document.documentElement.classList.contains('touch')), 'phone: touch controls switch on');
   await phone.tap('#playBtn');
   await phone.waitForFunction(() => window.__splat.G.phase === 'play', null, { timeout: 6000 });
-  check(await phone.isVisible('#tSprint') && await phone.isVisible('#tReload') && await phone.isHidden('.footbar'),
-    'phone: buttons show and the bottom bar hides during a match');
+  await phone.waitForFunction(() => document.documentElement.classList.contains('inplay'), null, { timeout: 6000 }).catch(() => {});
+  const ui = { sprint: await phone.isVisible('#tSprint'), reload: await phone.isVisible('#tReload'), footbarHidden: await phone.isHidden('.footbar') };
+  check(ui.sprint && ui.reload && ui.footbarHidden, `phone: buttons show and the bottom bar hides during a match ${JSON.stringify(ui)}`);
   const moved = await phone.evaluate(async () => {
     const S = window.__splat, hp = S.humanPlayer(), cv = document.getElementById('game'), r = cv.getBoundingClientRect();
     const ev = (type, id, x, y) => cv.dispatchEvent(new PointerEvent(type, { pointerId: id, pointerType: 'touch', clientX: r.left + x, clientY: r.top + y, bubbles: true, cancelable: true }));
     const x0 = hp.x, y0 = hp.y, a0 = hp.ammo;
     ev('pointerdown', 1, 90, r.height - 70); ev('pointermove', 1, 90, r.height - 30);              // left thumb: down
     ev('pointerdown', 2, r.width - 120, r.height - 90); ev('pointermove', 2, r.width - 120, r.height - 140); // right thumb: up, past halfway
-    await new Promise(res => setTimeout(res, 700));
+    for (let i = 0; i < 40; i++) S.step(1 / 60);   // steps the game itself, so a slow machine can't change the result
     const res = { walked: Math.hypot(hp.x - x0, hp.y - y0), shots: a0 - hp.ammo, aimUp: Math.abs(hp.aim + Math.PI / 2) < 0.2 };
     ev('pointerup', 1, 90, r.height - 30); ev('pointerup', 2, r.width - 120, r.height - 140);
     return res;
   });
-  check(moved.walked > 20 && moved.shots > 0 && moved.aimUp, `phone: left stick moves, right stick aims and fires (${moved.shots} shots)`);
+  check(moved.walked > 20 && moved.shots > 0 && moved.aimUp, `phone: left stick moves, right stick aims and fires ${JSON.stringify(moved)}`);
   await phone.tap('#tReload');
   check(await phone.evaluate(() => window.__splat.humanPlayer().reloadT > 0), 'phone: Reload button reloads');
   await phone.tap('#tPause');
