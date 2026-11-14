@@ -4,7 +4,7 @@ import { raycast } from './geometry.js';
 import { MAPS, BASES } from './field.js';
 import { freePoint, applyLayout, randomLayout } from './pathfinding.js';
 import { G, humanPlayer, newMatch, custom } from './state.js';
-import { speedFor, canShoot, shoot, startReload, onHill } from './rules.js';
+import { speedFor, canShoot, shoot, startReload, onHill, isHittable } from './rules.js';
 import { career, MODES, SKILLS, resetCareer, startMatchStats, recordMatch, matchesPlayed, matchesWon, clockText } from './stats.js';
 const MODE_NAMES = { ctf: 'Capture the Flag', lts: 'Last Team Standing', koth: 'King of the Hill' };
 import { canvas, view, drawField, clearPaint, drawPreview } from './drawing.js';
@@ -17,10 +17,11 @@ const menuEl = $('menu'), pauseEl = $('pauseMenu'), endEl = $('endMenu');
 const hopperEl = $('hopper'), squadEl = $('squad'), squadBtns = [...document.querySelectorAll('.sq')];
 const keys = Object.create(null);
 export const mouse = { sx: 0, sy: 0, wx: W / 2, wy: H / 2, down: false, inside: false };
-// Touch: twin sticks. The left thumb's stick moves (mx, my); the right thumb's stick aims (adx, ady) and fires once
-// pushed past halfway. Both sticks appear wherever the thumb lands. ax/ay is the crosshair point in front of you.
+// Touch: twin sticks. The left thumb's stick moves (mx, my); the right thumb's stick aims (adx, ady). Both appear
+// wherever the thumb lands. While the aim thumb is down, you fire automatically whenever the aim line (from you to
+// ax/ay: the first bunker or your marker's range) is on an enemy you can hit (onTarget).
 export const touch = { stickId: null, bx: 0, by: 0, mx: 0, my: 0, aimId: null, abx: 0, aby: 0, adx: 0, ady: 0,
-                       aimAng: 0, fire: false, sprint: false, ax: W / 2, ay: H / 2 };
+                       aimAng: 0, onTarget: false, sprint: false, ax: W / 2, ay: H / 2 };
 export const STICK = 52;                       // stick radius in screen pixels
 export const input = { source: 'mouse' };
 // Which controls are in use. The page gets a "touch" class so the CSS can show phone buttons and help.
@@ -44,7 +45,7 @@ export function updateHuman(p, dt) {
   const sp = speedFor(p);
   p.vx = mx * sp; p.vy = my * sp;
   aimHuman(p);
-  const wantsFire = mouse.down || keys.Space || touch.fire;
+  const wantsFire = mouse.down || keys.Space || (touch.aimId !== null && touch.onTarget);
   if (wantsFire && canShoot(p)) { const m = MK(p); shoot(p, p.aim, m.spread); p.cool = m.fireDelay; }
 }
 const ORDER_TEXT = { follow: 'Squad: follow me', hold: 'Squad: hold that spot', free: 'Squad: free play' };
@@ -65,10 +66,24 @@ export function issueOrder(cmd, atSelf) {
 export function aimHuman(p) {
   if (input.source === 'touch') {
     p.aim = assistAim(p, touch.aimAng);
-    touch.ax = p.x + Math.cos(p.aim) * 170; touch.ay = p.y + Math.sin(p.aim) * 170;
+    // the aim line runs to the first bunker or to your marker's range, and is "on target" if it crosses an enemy
+    const range = MK(p).range, ex = p.x + Math.cos(p.aim) * range, ey = p.y + Math.sin(p.aim) * range;
+    const hit = raycast(p.x, p.y, ex, ey, CFG.ballRadius), len = hit ? hit.t * range : range;
+    touch.ax = p.x + Math.cos(p.aim) * len; touch.ay = p.y + Math.sin(p.aim) * len;
+    touch.onTarget = p.state === 'active' && onLine(p, p.aim, len);
     return;
   }
   p.aim = Math.atan2(mouse.wy - p.y, mouse.wx - p.x);
+}
+// Is there an enemy you can hit along this line (from p, at angle ang, out to len)?
+function onLine(p, ang, len) {
+  const cx = Math.cos(ang), cy = Math.sin(ang);
+  for (const e of G.players) {
+    if (e.team === p.team || !isHittable(e)) continue;
+    const dx = e.x - p.x, dy = e.y - p.y, along = dx * cx + dy * cy;
+    if (along > 0 && along <= len + e.r && Math.abs(dx * cy - dy * cx) <= e.r + CFG.ballRadius + 2) return true;
+  }
+  return false;
 }
 // Light aim assist for thumbs (touch only, while the aim stick is held): if an enemy you could hit is in range and
 // within 8 degrees of where you're aiming, the aim snaps onto them. It never picks a target behind a bunker.
@@ -97,7 +112,7 @@ export function bindPointerInput() {
       setSource('touch');
       if (sx < w * 0.45 && touch.stickId === null) { touch.stickId = e.pointerId; touch.bx = sx; touch.by = sy; touch.mx = touch.my = 0; }
       else if (sx >= w * 0.45 && touch.aimId === null) {
-        Object.assign(touch, { aimId: e.pointerId, abx: sx, aby: sy, adx: 0, ady: 0, fire: false });
+        Object.assign(touch, { aimId: e.pointerId, abx: sx, aby: sy, adx: 0, ady: 0 });
       }
     } else {
       setSource('mouse');
@@ -115,8 +130,7 @@ export function bindPointerInput() {
         let dx = (sx - touch.abx) / STICK, dy = (sy - touch.aby) / STICK; const L = Math.hypot(dx, dy);
         if (L > 1) { dx /= L; dy /= L; touch.abx = sx - dx * STICK; touch.aby = sy - dy * STICK; } // the stick follows a long drag
         touch.adx = dx; touch.ady = dy;
-        if (L > 0.25) touch.aimAng = Math.atan2(dy, dx);
-        touch.fire = L >= 0.5;
+        if (L > 0.15) touch.aimAng = Math.atan2(dy, dx);
       }
       return;
     }
@@ -127,7 +141,7 @@ export function bindPointerInput() {
   function endPointer(e) {
     if (e.pointerType === 'touch') {
       if (e.pointerId === touch.stickId) { touch.stickId = null; touch.mx = touch.my = 0; touch.sprint = false; }
-      if (e.pointerId === touch.aimId) { touch.aimId = null; touch.adx = touch.ady = 0; touch.fire = false; }
+      if (e.pointerId === touch.aimId) { touch.aimId = null; touch.adx = touch.ady = 0; }
     } else if (e.button === 0 || e.type === 'pointercancel') mouse.down = false;
   }
   window.addEventListener('pointerup', endPointer);
@@ -168,7 +182,7 @@ window.addEventListener('keyup', e => { keys[e.code] = false; });
 function releaseInputs() {
   for (const k in keys) keys[k] = false;
   mouse.down = false;
-  Object.assign(touch, { stickId: null, aimId: null, mx: 0, my: 0, adx: 0, ady: 0, fire: false, sprint: false });
+  Object.assign(touch, { stickId: null, aimId: null, mx: 0, my: 0, adx: 0, ady: 0, sprint: false });
 }
 window.addEventListener('blur', () => { releaseInputs(); if (playing()) togglePause(true); });
 document.addEventListener('visibilitychange', () => { if (document.hidden && playing()) togglePause(true); });

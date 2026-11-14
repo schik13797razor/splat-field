@@ -73,18 +73,30 @@ try {
   await phone.waitForFunction(() => document.documentElement.classList.contains('inplay'), null, { timeout: 6000 }).catch(() => {});
   const ui = { sprint: await phone.isVisible('#tSprint'), reload: await phone.isVisible('#tReload'), footbarHidden: await phone.isHidden('.footbar') };
   check(ui.sprint && ui.reload && ui.footbarHidden, `phone: buttons show and the bottom bar hides during a match ${JSON.stringify(ui)}`);
-  const moved = await phone.evaluate(async () => {
+  const moved = await phone.evaluate(() => {
     const S = window.__splat, hp = S.humanPlayer(), cv = document.getElementById('game'), r = cv.getBoundingClientRect();
     const ev = (type, id, x, y) => cv.dispatchEvent(new PointerEvent(type, { pointerId: id, pointerType: 'touch', clientX: r.left + x, clientY: r.top + y, bubbles: true, cancelable: true }));
+    const run = n => { for (let i = 0; i < n; i++) S.step(1 / 60); };   // steps the game itself, so a slow machine can't change the result
+    // left thumb pushes down, right thumb aims up at empty field: you move and aim, but don't fire
     const x0 = hp.x, y0 = hp.y, a0 = hp.ammo;
-    ev('pointerdown', 1, 90, r.height - 70); ev('pointermove', 1, 90, r.height - 30);              // left thumb: down
-    ev('pointerdown', 2, r.width - 120, r.height - 90); ev('pointermove', 2, r.width - 120, r.height - 140); // right thumb: up, past halfway
-    for (let i = 0; i < 40; i++) S.step(1 / 60);   // steps the game itself, so a slow machine can't change the result
-    const res = { walked: Math.hypot(hp.x - x0, hp.y - y0), shots: a0 - hp.ammo, aimUp: Math.abs(hp.aim + Math.PI / 2) < 0.2 };
-    ev('pointerup', 1, 90, r.height - 30); ev('pointerup', 2, r.width - 120, r.height - 140);
+    ev('pointerdown', 1, 90, r.height - 70); ev('pointermove', 1, 90, r.height - 30);
+    ev('pointerdown', 2, r.width - 120, r.height - 90); ev('pointermove', 2, r.width - 120, r.height - 130);
+    run(40);
+    const res = { walked: Math.round(Math.hypot(hp.x - x0, hp.y - y0)), aimUp: Math.abs(hp.aim + Math.PI / 2) < 0.2, shotsAtNothing: a0 - hp.ammo };
+    ev('pointerup', 1, 90, r.height - 30);
+    // an enemy in the open, a little off to the right: aim right and auto-fire takes over
+    const place = (p, x, y) => Object.assign(p, { x, y, vx: 0, vy: 0, state: 'active', protect: 0 });
+    S.G.players.filter(p => p.team === 1).forEach((p, i) => place(p, 1450, 250 + i * 200));
+    place(hp, 560, 125); place(S.G.players.find(p => p.team === 1), 760, 135);
+    const a1 = hp.ammo;
+    ev('pointermove', 2, r.width - 80, r.height - 90);
+    run(10);
+    res.shotsOnTarget = a1 - hp.ammo;
+    ev('pointerup', 2, r.width - 80, r.height - 90);
     return res;
   });
-  check(moved.walked > 20 && moved.shots > 0 && moved.aimUp, `phone: left stick moves, right stick aims and fires ${JSON.stringify(moved)}`);
+  check(moved.walked > 20 && moved.aimUp && moved.shotsAtNothing === 0 && moved.shotsOnTarget > 0,
+    `phone: left stick moves, right stick aims, auto-fires only on target ${JSON.stringify(moved)}`);
   await phone.tap('#tReload');
   check(await phone.evaluate(() => window.__splat.humanPlayer().reloadT > 0), 'phone: Reload button reloads');
   await phone.tap('#tPause');

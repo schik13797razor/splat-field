@@ -44,8 +44,10 @@ Code plans, builds, and tests a game. `HANDOFF.md` has the full history and open
 - **Fields:** Snake Line, Barrel Yard, Midline, Hilltop (open middle for the hill), Random. Left half mirrored; bases
   are the same on every field.
 - **Bot skill:** Easy / Normal / Hard (`DIFF`).
-- **Phone controls** (touch; held sideways): twin sticks. Left thumb moves; right thumb aims and fires once pushed
-  past halfway (letting go keeps the aim). Light aim assist, touch only: an enemy you could hit within 8° of your aim
+- **Phone controls** (touch; held sideways): twin sticks. Left thumb moves; right thumb only aims (letting go keeps the
+  aim). A dotted aim line runs to the first bunker or the marker's range; while the aim thumb is down you fire
+  automatically whenever that line is on an enemy you can hit (changed 2026-11-13 from "push past halfway to fire",
+  which made shots hard to line up). Light aim assist, touch only: an enemy you could hit within 8° of your aim
   and in range pulls the aim onto them. Buttons: Sprint (toggle; stops when the move thumb lifts or you're winded),
   Reload, Pause, ×3 fast-forward when out. Upright phone pauses with a "turn sideways" screen.
 - Skipped by Jeff's choice for now: "enemy paint slows you", local 2-player, online multiplayer.

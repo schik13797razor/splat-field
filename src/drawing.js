@@ -415,6 +415,19 @@ function drawHitIndicator(c, hp, now) {
     c.restore();
   }
 }
+// Touch aim line: where your shots go, up to the first bunker or your marker's range. Faint when your aim thumb is
+// up, brighter while it's down, your team color when it's on an enemy (you're firing).
+function drawAimLine(c, hp) {
+  const x1 = hp.x * view.s + view.ox, y1 = hp.y * view.s + view.oy, x2 = touch.ax * view.s + view.ox, y2 = touch.ay * view.s + view.oy;
+  const held = touch.aimId !== null, hot = held && touch.onTarget;
+  c.save();
+  c.lineCap = 'round'; c.setLineDash([2, 7]);
+  c.strokeStyle = 'rgba(0,0,0,0.4)'; c.lineWidth = hot ? 5 : 4;
+  c.beginPath(); c.moveTo(x1, y1); c.lineTo(x2, y2); c.stroke();
+  c.strokeStyle = hot ? TEAMS[0].color : held ? 'rgba(245,248,242,0.85)' : 'rgba(245,248,242,0.3)'; c.lineWidth = hot ? 3 : 2;
+  c.beginPath(); c.moveTo(x1, y1); c.lineTo(x2, y2); c.stroke();
+  c.restore();
+}
 function drawCrosshair(c, x, y, hp) {
   if (hp) { // ammo ring around the crosshair (blue while reloading)
     const reloading = hp.reloadT > 0, m = MK(hp);
@@ -477,16 +490,18 @@ export function render() {
   }
   if (hp && !G.paused && G.phase !== 'over' && hp.state !== 'out') {
     const ammo = hp.state === 'active' ? hp : null;
-    if (input.source === 'touch') { if (touch.aimId !== null) drawCrosshair(c, touch.ax * view.s + view.ox, touch.ay * view.s + view.oy, ammo); }
+    if (input.source === 'touch') {
+      if (ammo) drawAimLine(c, hp);
+      if (touch.aimId !== null) drawCrosshair(c, touch.ax * view.s + view.ox, touch.ay * view.s + view.oy, ammo);
+    }
     else if (mouse.inside) drawCrosshair(c, mouse.sx, mouse.sy, ammo);
   }
-  // touch sticks: move (left thumb) and aim (right thumb; its knob turns your team color while it fires)
+  // touch sticks: move (left thumb) and aim (right thumb; its knob turns your team color while it's on target)
   if (touch.stickId !== null) drawStick(c, touch.bx, touch.by, touch.mx, touch.my, 'rgba(245,248,242,0.45)', false);
-  if (touch.aimId !== null) drawStick(c, touch.abx, touch.aby, touch.adx, touch.ady, touch.fire ? hexA(TEAMS[0].color, 0.75) : 'rgba(245,248,242,0.45)', true);
+  if (touch.aimId !== null) drawStick(c, touch.abx, touch.aby, touch.adx, touch.ady, touch.onTarget ? hexA(TEAMS[0].color, 0.75) : 'rgba(245,248,242,0.45)');
 }
-function drawStick(c, x, y, dx, dy, knob, aim) {
+function drawStick(c, x, y, dx, dy, knob) {
   c.fillStyle = 'rgba(245,248,242,0.10)'; c.strokeStyle = 'rgba(245,248,242,0.35)'; c.lineWidth = 2;
   c.beginPath(); c.arc(x, y, STICK, 0, TAU); c.fill(); c.stroke();
-  if (aim) { c.setLineDash([3, 5]); c.beginPath(); c.arc(x, y, STICK * 0.5, 0, TAU); c.stroke(); c.setLineDash([]); } // fire line
   c.fillStyle = knob; circle(c, x + dx * STICK, y + dy * STICK, 22);
 }
