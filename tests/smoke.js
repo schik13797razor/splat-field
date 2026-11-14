@@ -106,6 +106,8 @@ try {
   });
   await page.waitForTimeout(300); // let a few real frames render the last field
   for (const r of sweep) check(r.hits > 0, `${r.map} ${r.mode}: bots play (${r.hits} hits in 30 s)`);
+} catch (e) {
+  errors.push(`test stopped early: ${String(e && e.message || e).split(/\r?\n/).slice(0, 3).join(' | ')}`);
 } finally {
   await browser.close();
   await server.close();
@@ -113,6 +115,8 @@ try {
 
 for (const c of checks) console.log(`${c.ok ? 'ok  ' : 'FAIL'}  ${c.what}`);
 for (const e of errors) console.log(`FAIL  ${e}`);
+// On GitHub, also report each problem as an annotation (shown on the run page, readable without signing in).
+if (process.env.GITHUB_ACTIONS) for (const p of [...checks.filter(c => !c.ok).map(c => c.what), ...errors]) console.log(`::error title=npm test::${p.replace(/\r?\n/g, ' ')}`);
 const failed = checks.filter(c => !c.ok).length + errors.length;
 console.log(failed ? `\n${failed} problem(s)` : `\nAll ${checks.length} checks passed, no console errors.`);
 process.exit(failed ? 1 : 0);
