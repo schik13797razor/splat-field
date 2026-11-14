@@ -142,6 +142,14 @@ and paints to it during your own matches, and `showEnd()` records the finished m
 - **Random numbers and drawing:** `splat()` runs during the simulation, so it must take the same `Math.random`
   numbers in the same order; extra visual detail uses its own generator (`vr` in `drawing.js`). Animation state
   (stride, hit pop) lives in a WeakMap in `drawing.js`, never on the player.
+- **Sound** (`sound.js`, all synthesized): effects and the crowd feed an Effects channel, the soundtrack a Music
+  channel, both into Master. The sliders (0-100, settings `volMaster`/`volSfx`/`volMusic`, in the menu's Sound fold-out
+  and the pause menu) are squared into gains; Master 80 = the old fixed level. M mutes everything. Effects and crowd
+  play only when `G.human`; the music starts on the first click or key (browser rule), with moods `menu`, `match`,
+  `tense` (last 30 s or one flag/round/10 points from winning), muffled while paused. `updateHUD` picks the music
+  mood and crowd murmur level every frame. Music and crowd use their own generator (`mrand`), never `Math.random`.
+  In the browser, Vite serves `sound.js` with a `?t=` query, so to poke the live `Sound` object import that exact URL
+  (from `performance.getEntriesByType('resource')`), not `/src/sound.js`.
 
 ## Proving a change doesn't affect gameplay
 

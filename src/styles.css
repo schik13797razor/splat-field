@@ -295,3 +295,9 @@ kbd { font-family: var(--ui); font-weight: 700; color: var(--text); background: 
   .banner { animation: none; }
   .feed li { transition: none; }
 }
+/* Volume sliders (menu Sound fold-out and pause menu) */
+.vols { display: grid; gap: 8px; }
+.vol { display: grid; grid-template-columns: 70px 1fr 34px; align-items: center; gap: 10px; font-size: 14px; font-weight: 700; color: var(--muted); }
+.vol input { width: 100%; margin: 0; accent-color: var(--team0); cursor: pointer; }
+.vol input:focus-visible { outline: 2px solid var(--wash); outline-offset: 3px; border-radius: 4px; }
+.vol output { text-align: right; color: var(--text); font-variant-numeric: tabular-nums; }

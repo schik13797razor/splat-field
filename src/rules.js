@@ -104,6 +104,7 @@ function registerHit(v, shooter, x, y, ang) {
   v.reloadT = 0;
   v.ai.target = null; v.ai.goal = null; v.ai.path = []; v.ai.routeKey = '';
   Sound.hit(Math.max(volAt(x, y), v.isHuman || shooter.isHuman ? 0.9 : 0));
+  if (shooter.isHuman) Sound.crowd('cheer', 0.25); else if (v.isHuman) Sound.crowd('groan', 0.35);   // home crowd
   if (shooter.isHuman) { hitMark.t = 0.28; G.fx.shake = Math.max(G.fx.shake, 2.5); }
   if (v.isHuman) Object.assign(G.fx, { hitT: 1.8, hitTeam: shooter.team, shooter, shake: CFG.shakeHit, vignette: 1,
                                        hitAngle: Math.atan2(shooter.y - v.y, shooter.x - v.x) });
@@ -195,7 +196,8 @@ export function updateFlags(dt) {
       if (p.team !== f.team && !p.carrying) {
         f.state = 'carried'; f.carrier = p; p.carrying = f;
         feed(`${p.name} grabbed the ${TEAMS[f.team].name} flag`, p.team);
-        Sound.grab(); if (p.isHuman) banner('Flag grabbed', 'Run it home', 1.1, 't' + p.team);
+        Sound.grab(); Sound.crowd(p.team === 0 ? 'ooh' : 'groan', 0.45);
+        if (p.isHuman) banner('Flag grabbed', 'Run it home', 1.1, 't' + p.team);
         else if (G.human && f.team === 0) banner('Flag taken', `${p.name} has your flag`, 1.3, 't1');
         break;
       }
@@ -218,7 +220,7 @@ function capture(c, f) {
   Object.assign(f, { state: 'home', carrier: null, dropT: 0, x: BASES[f.team].flag.x, y: BASES[f.team].flag.y });
   feed(`${c.name} captured the ${TEAMS[f.team].name} flag`, c.team);
   banner(`${TEAMS[c.team].name} scores`, `${c.name} captured the flag`, 2, 't' + c.team);
-  Sound.cheer();
+  Sound.cheer(); Sound.crowd(c.team === 0 ? 'cheer' : 'groan', 0.8);
   if (G.caps[c.team] >= CFG.ctfCapsToWin) endMatch(c.team);
 }
 
@@ -230,8 +232,8 @@ export function checkLTS() {
 function endRound(w) {
   G.phase = 'roundEnd'; G.phaseT = 2.8;
   Sound.whistle(true);
-  if (w >= 0) { G.roundWins[w]++; banner(`${TEAMS[w].name} takes it`, `Round ${G.round}`, 2.4, 't' + w); Sound.cheer(); }
-  else banner('Draw', `Round ${G.round}`, 2.4);
+  if (w >= 0) { G.roundWins[w]++; banner(`${TEAMS[w].name} takes it`, `Round ${G.round}`, 2.4, 't' + w); Sound.cheer(); Sound.crowd(w === 0 ? 'cheer' : 'groan', 0.7); }
+  else { banner('Draw', `Round ${G.round}`, 2.4); Sound.crowd('applause', 0.3); }
   G.pendingWinner = w >= 0 && G.roundWins[w] >= CFG.ltsRoundsToWin ? w : null;
 }
 export function nextRound() {
@@ -252,7 +254,7 @@ export function updateHill(dt) {
   if (owner >= 0 && owner !== h.last) {   // control changed hands (a contested moment in between doesn't count)
     h.last = owner;
     feed(`${TEAMS[owner].name} took the hill`, owner);
-    if (G.human) { Sound.grab(); banner(owner === 0 ? 'Hill is yours' : `${TEAMS[owner].name} has the hill`, 'Hold it to score', 1.1, 't' + owner); }
+    if (G.human) { Sound.grab(); Sound.crowd(owner === 0 ? 'cheer' : 'groan', 0.45); banner(owner === 0 ? 'Hill is yours' : `${TEAMS[owner].name} has the hill`, 'Hold it to score', 1.1, 't' + owner); }
   }
   h.owner = owner; h.contested = contested;
   if (owner < 0) return;
@@ -271,4 +273,6 @@ export function endMatch(w) {
   G.phase = 'over'; G.winner = w; G.phaseT = G.human ? 1.6 : 5; G.endHandled = false;
   Sound.whistle(true);
   if (G.human) banner(w < 0 ? 'Draw' : `${TEAMS[w].name} wins`, 'Match over', 1.6, w < 0 ? '' : 't' + w);
+  Sound.crowd(w === 0 ? 'cheer' : w === 1 ? 'groan' : 'applause', w === 0 ? 1 : 0.8);
+  if (w === 1) Sound.crowd('applause', 0.6, 1.3);   // the home crowd still claps their team off
 }

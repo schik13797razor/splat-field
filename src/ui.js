@@ -145,13 +145,36 @@ export function feed(text, team) {
 
 // settings (remembered in this browser when storage is available)
 export const settings = { mode: 'ctf', diff: 'normal', marker: 'electro', map: 'snake', muted: false, team0: 'orange', team1: 'blue',
-                          playerName: '', mate1: '', mate2: '', jersey: 'stripe', mask: 'black' };
+                          playerName: '', mate1: '', mate2: '', jersey: 'stripe', mask: 'black', volMaster: 80, volSfx: 100, volMusic: 70 };
 try { Object.assign(settings, JSON.parse(localStorage.getItem('splatfield.settings') || '{}')); } catch (e) {}
 if (!MARKERS[settings.marker]) settings.marker = 'electro';
 if (!MAPS[settings.map] && settings.map !== 'random') settings.map = 'snake';
 if (!TEAM_COLORS[settings.team0] || !TEAM_COLORS[settings.team1] || settings.team0 === settings.team1) Object.assign(settings, { team0: 'orange', team1: 'blue' });
 if (!['stripe', 'solid', 'split', 'hoops'].includes(settings.jersey)) settings.jersey = 'stripe';
 if (!['black', 'white', 'gray', 'camo'].includes(settings.mask)) settings.mask = 'black';
+// Volume sliders (0-100). Both copies (menu and pause menu) show the same three settings.
+const VOLS = { master: 'volMaster', sfx: 'volSfx', music: 'volMusic' };
+for (const [k, key] of Object.entries(VOLS)) {
+  const v = Number(settings[key]);
+  settings[key] = Number.isFinite(v) ? Math.round(Math.max(0, Math.min(100, v))) : { master: 80, sfx: 100, music: 70 }[k];
+}
+function applyVolumes() {
+  Sound.setVolumes({ master: settings.volMaster, sfx: settings.volSfx, music: settings.volMusic });
+  for (const el of document.querySelectorAll('input[data-vol]')) {
+    const v = settings[VOLS[el.dataset.vol]];
+    if (document.activeElement !== el) el.value = v;
+    el.nextElementSibling.textContent = String(v);
+  }
+}
+for (const el of document.querySelectorAll('input[data-vol]')) {
+  el.addEventListener('input', () => {
+    Sound.init();
+    settings[VOLS[el.dataset.vol]] = Number(el.value);
+    if (settings.muted) settings.muted = false;   // moving a slider turns sound back on
+    saveSettings(); syncSettingsUI();
+  });
+  el.addEventListener('change', () => { if (el.dataset.vol !== 'music') Sound.preview(); }); // let go: hear the level
+}
 // Names: up to 10 letters, digits, spaces, dots or dashes, shown in capitals like the bots' names.
 const cleanName = s => String(s || '').toUpperCase().replace(/[^A-Z0-9 .\-]/g, '').replace(/\s+/g, ' ').trim().slice(0, 10);
 const NAME_INPUTS = { nameInput: 'playerName', mate1Input: 'mate1', mate2Input: 'mate2' };
@@ -190,6 +213,7 @@ export function syncSettingsUI() {
   $('markerHint').textContent = MARKERS[settings.marker].hint;
   Sound.setMuted(!!settings.muted);
   $('soundBtn').textContent = settings.muted ? 'Sound: off' : 'Sound: on';
+  applyVolumes();
   for (const [id, key] of Object.entries(NAME_INPUTS)) if (document.activeElement !== $(id)) $(id).value = settings[key];
   applyTeamColors();
   applyCustom();
@@ -337,6 +361,18 @@ $('menuBtn').addEventListener('click', toMenu);
 $('pauseBtn').addEventListener('click', () => { if (G.human) togglePause(); });
 $('soundBtn').addEventListener('click', () => { Sound.init(); toggleMute(); });
 
+// Music mood: calm behind the menu, full beat in your match, tense in the last 30 seconds or when either team is
+// one flag or round from winning (within 10 points on the hill).
+function musicMood() {
+  if (!G.human || G.phase === 'over') return 'menu';
+  const near = G.mode === 'ctf' ? Math.max(...G.caps) >= CFG.ctfCapsToWin - 1
+    : G.mode === 'koth' ? Math.max(...G.points) >= CFG.kothPointsToWin - 10
+    : Math.max(...G.roundWins) >= CFG.ltsRoundsToWin - 1;
+  return G.phase === 'play' && (G.time <= 30 || near) ? 'tense' : 'match';
+}
+// Browsers only allow sound after you click or press a key, so the menu music starts on your first one.
+for (const ev of ['pointerdown', 'keydown']) window.addEventListener(ev, () => Sound.init(), { once: true, capture: true });
+
 // scoreboard
 const hud = Object.create(null);
 function setText(id, v) { if (hud[id] !== v) { hud[id] = v; $(id).textContent = v; } }
@@ -384,6 +420,8 @@ export function updateHUD() {
     $('stamMeter').classList.toggle('winded', hp.winded);
   }
   Sound.ambience(G.human && !G.paused && G.phase !== 'over' && !settings.muted);
+  Sound.music(musicMood(), G.human && G.paused);
+  Sound.crowdBed(G.human && !G.paused && G.phase !== 'over' ? (musicMood() === 'tense' ? 1.5 : 1) : 0);
   // squad orders
   squadEl.hidden = !(G.human && G.phase !== 'over');
   if (hud.squad !== G.squad.cmd) { hud.squad = G.squad.cmd; squadBtns.forEach(b => b.classList.toggle('on', b.dataset.cmd === G.squad.cmd)); }

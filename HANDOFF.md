@@ -65,7 +65,7 @@ Notes for Claude Code (and for Jeff) on where this project stands as it moves ou
 6. `rules.js` RULES: shooting, hits, wash, flags, the hill (`updateHill`), rounds, stamina.
 7. `bots.js` BOT BRAINS: `pickTarget`, `updateBot`, attack lanes (`routeTo`), `ctfBrain`, `kothBrain`, `followOrders`, `ltsBrain`, `findCover`.
 8. `drawing.js` DRAWING: the field layer is drawn once, the paint layer keeps every splat, then players and effects.
-9. `sound.js` SOUND: Web Audio synth, field ambience.
+9. `sound.js` SOUND: Web Audio synth: effects, field ambience, music (3 moods), home crowd, volume channels.
 10. `ui.js` INPUT + UI: keyboard, mouse, touch, menus, settings saved in localStorage, HUD, `loadMap`.
 11. `main.js` MAIN LOOP: update, render, HUD, `boot()`, and the `window.__splat` test hook. This is the entry point.
 
@@ -165,4 +165,8 @@ After-fix table (`npm run sim -- --matches=20`): see CLAUDE.md. Blue won 123/240
   Side effect: bot defenders (both teams) are weaker, so CTF Easy/Normal matches are ~25-40% shorter.
 - KOTH bots first sat behind the center bunker on both sides and the hill stayed contested ~70% of the time; they now
   go around and clear enemies off a contested hill (contested ~29%).
+- Sound pass (2026-11-13): volume sliders (Master, Effects, Music) in the menu and pause menu; a made-in-code
+  soundtrack in A minor (calm menu, full match, tense finish, muffled when paused); a home crowd that cheers your
+  team's hits, grabs, captures, hills, rounds and wins, groans at the other team's, and murmurs during play.
+  Seeded comparison: 45/45 bot matches and 300/300 random fields identical to the commit before.
 - Skipped for now, by Jeff's choice: an "enemy paint slows you down" mechanic, and local 2-player / online multiplayer.

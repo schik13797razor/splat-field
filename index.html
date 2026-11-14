@@ -202,6 +202,17 @@
             </div>
           </div>
         </details>
+        <details class="custom" id="soundPanel">
+          <summary>Sound<span class="fhint">Volume for effects and music</span></summary>
+          <div class="custgrid">
+            <div class="vols">
+              <label class="vol">Master<input type="range" min="0" max="100" step="1" data-vol="master"><output></output></label>
+              <label class="vol">Effects<input type="range" min="0" max="100" step="1" data-vol="sfx"><output></output></label>
+              <label class="vol">Music<input type="range" min="0" max="100" step="1" data-vol="music"><output></output></label>
+            </div>
+            <p class="fhint"><kbd>M</kbd> turns all sound off and on.</p>
+          </div>
+        </details>
         <p class="touchnote" id="touchNote" hidden>Built for keyboard and mouse. On a phone, turn it sideways: drag on the left side to move, and touch the right side to aim and shoot.</p>
       </div>
     </section>
@@ -213,6 +224,11 @@
           <button class="btn primary" id="resumeBtn" type="button">Resume</button>
           <button class="btn" id="restartBtn" type="button">Restart</button>
           <button class="btn" id="quitBtn" type="button">Main menu</button>
+        </div>
+        <div class="vols">
+          <label class="vol">Master<input type="range" min="0" max="100" step="1" data-vol="master"><output></output></label>
+          <label class="vol">Effects<input type="range" min="0" max="100" step="1" data-vol="sfx"><output></output></label>
+          <label class="vol">Music<input type="range" min="0" max="100" step="1" data-vol="music"><output></output></label>
         </div>
         <p class="pausekeys"><kbd>WASD</kbd> move · mouse aim · click shoot · <kbd>Shift</kbd> sprint · <kbd>R</kbd> reload ·
           <kbd>1</kbd>–<kbd>4</kbd> squad (follow, hold, attack, free) · <kbd>F</kbd> fast-forward when out · <kbd>M</kbd> sound</p>
