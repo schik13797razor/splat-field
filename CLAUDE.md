@@ -44,6 +44,10 @@ Code plans, builds, and tests a game. `HANDOFF.md` has the full history and open
 - **Fields:** Snake Line, Barrel Yard, Midline, Hilltop (open middle for the hill), Random. Left half mirrored; bases
   are the same on every field.
 - **Bot skill:** Easy / Normal / Hard (`DIFF`).
+- **Phone controls** (touch; held sideways): twin sticks. Left thumb moves; right thumb aims and fires once pushed
+  past halfway (letting go keeps the aim). Light aim assist, touch only: an enemy you could hit within 8° of your aim
+  and in range pulls the aim onto them. Buttons: Sprint (toggle; stops when the move thumb lifts or you're winded),
+  Reload, Pause, ×3 fast-forward when out. Upright phone pauses with a "turn sideways" screen.
 - Skipped by Jeff's choice for now: "enemy paint slows you", local 2-player, online multiplayer.
 
 ## Commands
@@ -55,7 +59,8 @@ Code plans, builds, and tests a game. `HANDOFF.md` has the full history and open
   (`.github/workflows/deploy.yml`), but only after `npm test` passes on GitHub; a failing test leaves the live site on
   the last good version. Pushing `master` is a public release: push only when Jeff asks.
 - `npm test` (`tests/smoke.js`, about 15 s): loads the game in headless Chromium, plays a real match through the menu
-  and controls, finishes it and checks the end screen and saved stats, sweeps every field × mode with bots, and fails on any page error or `console.error` (failed Google
+  and controls, finishes it and checks the end screen and saved stats, plays on an emulated phone (sticks and buttons), sweeps every
+  field × mode with bots, and fails on any page error or `console.error` (failed Google
   Fonts requests are ignored). Run it after every change.
 - `npm run sim` (`tests/sim.js`): bot-only balance batches, printed as one table per field × skill. Defaults to 8
   matches per setting (360 matches, about 40 s). Options: `--matches=N --fields=snake,barrel,midline,hilltop,random
@@ -136,6 +141,10 @@ and paints to it during your own matches, and `showEnd()` records the finished m
 - **Bots** (`bots.js`): `updateBot` handles target choice, aiming, and cover, then hands movement to a mode brain
   (`ctfBrain`, `ltsBrain`, `kothBrain`) or to `followOrders` for Orange bots under a squad order. Per-difficulty numbers come from
   `DIFF`; per-marker numbers from `MARKERS`.
+- **Touch:** `setSource()` in `ui.js` puts class `touch` on `<html>` (a coarse pointer or any touch), and `inplay`
+  during your match; CSS uses them to show `.touchonly`/hide `.keyonly` help, the phone buttons (`#tpad`), and the
+  bigger phone layout. The `touch` object holds both sticks; `aimHuman` applies the assist. Touch never runs in
+  bot-only matches.
 - **Settings** persist in localStorage under `splatfield.settings`. Customize choices are copied into `custom`
   (`state.js`), which `makePlayer` (names) and `drawPlayer` (jersey, mask) read; team colors recolor the shared
   `TEAMS` objects in place (`setTeamColors`) and the CSS `--team0`/`--team1` variables.

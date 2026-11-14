@@ -73,7 +73,6 @@ window.__splat = { G, CFG, DIFF, MARKERS, MAPS, COVER, step: dt => update(dt), n
 function boot() {
   bindPointerInput();
   syncSettingsUI();
-  if (matchMedia('(pointer: coarse)').matches) $('touchNote').hidden = false;
   drawField();
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(drawField);
   resize();

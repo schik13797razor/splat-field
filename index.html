@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Splat Field</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -34,6 +34,13 @@
     <canvas id="game" aria-label="Paintball field"></canvas>
     <div class="banner" id="banner" hidden><span class="bsub" id="bannerSub"></span><span class="bmain" id="bannerMain"></span></div>
     <ol class="feed" id="feed" aria-live="polite"></ol>
+    <div class="tpad" id="tpad" hidden>
+      <button class="tbtn tpause" id="tPause" type="button" aria-label="Pause"><span aria-hidden="true">❚❚</span></button>
+      <button class="tbtn tsprint" id="tSprint" type="button">Sprint</button>
+      <button class="tbtn treload" id="tReload" type="button">Reload</button>
+      <button class="tbtn tfast" id="tFast" type="button" hidden>×3</button>
+    </div>
+    <div class="rotate" id="rotateNote"><p><span aria-hidden="true">⟳</span>Turn your phone sideways to play</p></div>
     <div class="status" id="status" hidden>
       <div id="statusText"></div>
       <div class="meter" id="washMeter" hidden><b id="washFill"></b></div>
@@ -111,7 +118,18 @@
         <details class="custom" id="howto">
           <summary>How to play<span class="fhint">Controls and the basics</span></summary>
           <div class="custgrid">
-            <fieldset>
+            <fieldset class="touchonly">
+              <legend>On a phone (hold it sideways)</legend>
+              <dl class="keysgrid">
+                <dt>Left thumb</dt><dd>Touch anywhere on the left side and drag to move</dd>
+                <dt>Right thumb</dt><dd>Touch anywhere on the right side and drag to aim. Push past halfway to shoot.</dd>
+                <dt>Sprint</dt><dd>Tap to sprint, tap again to stop (it also stops when you let go or run out)</dd>
+                <dt>Reload</dt><dd>Refill your paint (it reloads by itself when empty)</dd>
+                <dt>Squad</dt><dd>Follow, Hold, Attack, Free at the top left</dd>
+                <dt>×3</dt><dd>Fast-forward while you're out</dd>
+              </dl>
+            </fieldset>
+            <fieldset class="keyonly">
               <legend>Controls</legend>
               <dl class="keysgrid">
                 <dt><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></dt><dd>Move (arrow keys work too)</dd>
@@ -213,7 +231,7 @@
             <p class="fhint"><kbd>M</kbd> turns all sound off and on.</p>
           </div>
         </details>
-        <p class="touchnote" id="touchNote" hidden>Built for keyboard and mouse. On a phone, turn it sideways: drag on the left side to move, and touch the right side to aim and shoot.</p>
+        <p class="touchnote touchonly" id="touchNote">On a phone, turn it sideways. Left thumb moves, right thumb aims and shoots. See How to play.</p>
       </div>
     </section>
 
@@ -230,7 +248,8 @@
           <label class="vol">Effects<input type="range" min="0" max="100" step="1" data-vol="sfx"><output></output></label>
           <label class="vol">Music<input type="range" min="0" max="100" step="1" data-vol="music"><output></output></label>
         </div>
-        <p class="pausekeys"><kbd>WASD</kbd> move · mouse aim · click shoot · <kbd>Shift</kbd> sprint · <kbd>R</kbd> reload ·
+        <p class="pausekeys touchonly">Left thumb moves · right thumb aims, push past halfway to shoot · Sprint and Reload buttons · squad orders top left</p>
+        <p class="pausekeys keyonly"><kbd>WASD</kbd> move · mouse aim · click shoot · <kbd>Shift</kbd> sprint · <kbd>R</kbd> reload ·
           <kbd>1</kbd>–<kbd>4</kbd> squad (follow, hold, attack, free) · <kbd>F</kbd> fast-forward when out · <kbd>M</kbd> sound</p>
       </div>
     </section>

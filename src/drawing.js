@@ -2,7 +2,7 @@ import { CFG, MK, MARKERS, TEAMS, PAL, FONT_UI, FONT_DISPLAY } from './config.js
 import { W, H, TAU, clamp, rand, rectCenter, hexA, mulberry32 } from './util.js';
 import { BORDER, OBST, BASES } from './field.js';
 import { G, reduceMotion, hitMark, humanPlayer, custom } from './state.js';
-import { mouse, touch, input } from './ui.js';
+import { mouse, touch, input, STICK } from './ui.js';
 
 /* ---------- 8. DRAWING ---------- */
 export const canvas = document.getElementById('game');
@@ -480,9 +480,13 @@ export function render() {
     if (input.source === 'touch') { if (touch.aimId !== null) drawCrosshair(c, touch.ax * view.s + view.ox, touch.ay * view.s + view.oy, ammo); }
     else if (mouse.inside) drawCrosshair(c, mouse.sx, mouse.sy, ammo);
   }
-  if (touch.stickId !== null) {
-    c.fillStyle = 'rgba(245,248,242,0.10)'; c.strokeStyle = 'rgba(245,248,242,0.35)'; c.lineWidth = 2;
-    c.beginPath(); c.arc(touch.bx, touch.by, 52, 0, TAU); c.fill(); c.stroke();
-    c.fillStyle = 'rgba(245,248,242,0.45)'; circle(c, touch.bx + touch.mx * 52, touch.by + touch.my * 52, 22);
-  }
+  // touch sticks: move (left thumb) and aim (right thumb; its knob turns your team color while it fires)
+  if (touch.stickId !== null) drawStick(c, touch.bx, touch.by, touch.mx, touch.my, 'rgba(245,248,242,0.45)', false);
+  if (touch.aimId !== null) drawStick(c, touch.abx, touch.aby, touch.adx, touch.ady, touch.fire ? hexA(TEAMS[0].color, 0.75) : 'rgba(245,248,242,0.45)', true);
+}
+function drawStick(c, x, y, dx, dy, knob, aim) {
+  c.fillStyle = 'rgba(245,248,242,0.10)'; c.strokeStyle = 'rgba(245,248,242,0.35)'; c.lineWidth = 2;
+  c.beginPath(); c.arc(x, y, STICK, 0, TAU); c.fill(); c.stroke();
+  if (aim) { c.setLineDash([3, 5]); c.beginPath(); c.arc(x, y, STICK * 0.5, 0, TAU); c.stroke(); c.setLineDash([]); } // fire line
+  c.fillStyle = knob; circle(c, x + dx * STICK, y + dy * STICK, 22);
 }

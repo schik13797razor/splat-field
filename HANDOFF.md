@@ -165,6 +165,9 @@ After-fix table (`npm run sim -- --matches=20`): see CLAUDE.md. Blue won 123/240
   Side effect: bot defenders (both teams) are weaker, so CTF Easy/Normal matches are ~25-40% shorter.
 - KOTH bots first sat behind the center bunker on both sides and the hill stayed contested ~70% of the time; they now
   go around and clear enemies off a contested hill (contested ~29%).
+- Phone controls (2026-11-13): twin sticks (right stick fires past halfway), light 8° aim assist on touch only,
+  Sprint/Reload/Pause/×3 buttons, bigger field during play (no bottom bar), full screen on Android, a "turn sideways"
+  pause screen. `npm test` now also plays on an emulated phone. Not yet tried with real thumbs at the time of commit.
 - Sound pass (2026-11-13): volume sliders (Master, Effects, Music) in the menu and pause menu; a made-in-code
   soundtrack in A minor (calm menu, full match, tense finish, muffled when paused); a home crowd that cheers your
   team's hits, grabs, captures, hills, rounds and wins, groans at the other team's, and murmurs during play.

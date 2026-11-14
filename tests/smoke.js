@@ -60,7 +60,37 @@ try {
   await page.click('#menuBtn');
   check((await page.textContent('#statsHint')).startsWith('1 played'), 'menu stats show the match');
 
-  // 3. Every field and mode, bots only, 30 simulated seconds each, drawn at the end.
+  // 3. A phone held sideways: touch controls (twin sticks and buttons) in a real match.
+  const phone = await browser.newPage({ viewport: { width: 740, height: 360 }, hasTouch: true, isMobile: true });
+  await phone.addInitScript(SEEDED_RANDOM);
+  phone.on('pageerror', e => errors.push(`phone page error: ${e.message}`));
+  phone.on('console', m => { if (m.type() === 'error' && !FONT_HOSTS.test(m.location().url || '')) errors.push(`phone console.error: ${m.text()}`); });
+  await phone.goto(server.url, { waitUntil: 'load' });
+  await waitForHook(phone);
+  check(await phone.evaluate(() => document.documentElement.classList.contains('touch')), 'phone: touch controls switch on');
+  await phone.tap('#playBtn');
+  await phone.waitForFunction(() => window.__splat.G.phase === 'play', null, { timeout: 6000 });
+  check(await phone.isVisible('#tSprint') && await phone.isVisible('#tReload') && await phone.isHidden('.footbar'),
+    'phone: buttons show and the bottom bar hides during a match');
+  const moved = await phone.evaluate(async () => {
+    const S = window.__splat, hp = S.humanPlayer(), cv = document.getElementById('game'), r = cv.getBoundingClientRect();
+    const ev = (type, id, x, y) => cv.dispatchEvent(new PointerEvent(type, { pointerId: id, pointerType: 'touch', clientX: r.left + x, clientY: r.top + y, bubbles: true, cancelable: true }));
+    const x0 = hp.x, y0 = hp.y, a0 = hp.ammo;
+    ev('pointerdown', 1, 90, r.height - 70); ev('pointermove', 1, 90, r.height - 30);              // left thumb: down
+    ev('pointerdown', 2, r.width - 120, r.height - 90); ev('pointermove', 2, r.width - 120, r.height - 140); // right thumb: up, past halfway
+    await new Promise(res => setTimeout(res, 700));
+    const res = { walked: Math.hypot(hp.x - x0, hp.y - y0), shots: a0 - hp.ammo, aimUp: Math.abs(hp.aim + Math.PI / 2) < 0.2 };
+    ev('pointerup', 1, 90, r.height - 30); ev('pointerup', 2, r.width - 120, r.height - 140);
+    return res;
+  });
+  check(moved.walked > 20 && moved.shots > 0 && moved.aimUp, `phone: left stick moves, right stick aims and fires (${moved.shots} shots)`);
+  await phone.tap('#tReload');
+  check(await phone.evaluate(() => window.__splat.humanPlayer().reloadT > 0), 'phone: Reload button reloads');
+  await phone.tap('#tPause');
+  check(await phone.evaluate(() => window.__splat.G.paused), 'phone: Pause button pauses');
+  await phone.close();
+
+  // 4. Every field and mode, bots only, 30 simulated seconds each, drawn at the end.
   const sweep = await page.evaluate(() => {
     const S = window.__splat, out = [];
     let seed = 1;

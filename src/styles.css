@@ -301,3 +301,38 @@ kbd { font-family: var(--ui); font-weight: 700; color: var(--text); background: 
 .vol input { width: 100%; margin: 0; accent-color: var(--team0); cursor: pointer; }
 .vol input:focus-visible { outline: 2px solid var(--wash); outline-offset: 3px; border-radius: 4px; }
 .vol output { text-align: right; color: var(--text); font-variant-numeric: tabular-nums; }
+/* ---------- phones and tablets (the page gets class "touch"; "inplay" during your match) ---------- */
+html:not(.touch) .touchonly, html.touch .keyonly { display: none !important; }
+.tpad { position: absolute; inset: 0; pointer-events: none; }
+.tbtn {
+  position: absolute; pointer-events: auto; touch-action: none;
+  font: inherit; font-weight: 700; font-size: 15px; color: var(--chalk);
+  min-width: 58px; height: 58px; padding: 0 14px; border-radius: 999px;
+  background: rgba(10, 15, 12, 0.55); border: 1.5px solid rgba(245, 248, 242, 0.38);
+}
+.tbtn:active { background: rgba(245, 248, 242, 0.25); }
+.tbtn.on { background: var(--stamina); border-color: var(--stamina); color: #1b2007; }
+.tpause { top: 8px; right: 8px; min-width: 44px; height: 44px; padding: 0; font-size: 13px; }
+.tsprint { left: max(10px, env(safe-area-inset-left)); top: 38%; }
+.treload, .tfast { right: max(10px, env(safe-area-inset-right)); top: 38%; }
+.rotate { display: none; }
+html.touch .feed { top: 60px; }
+html.touch .sq kbd { display: none; }
+html.touch .sq span { display: inline; }
+html.touch .sq { padding: 7px 10px; }
+html.touch .hopper { left: 50%; transform: translateX(-50%); bottom: 6px; width: 140px; padding: 5px 8px; gap: 4px; }
+html.touch .status { bottom: 64px; }
+html.touch .sqlabel { display: none; }
+html.touch .hhint { display: none; }
+html.touch button, html.touch summary, html.touch label { touch-action: manipulation; }
+/* during your match on a phone: no bottom bar, tighter scoreboard, the field gets the room */
+html.touch.inplay #app { grid-template-rows: auto minmax(0, 1fr); gap: 4px; padding: 4px max(4px, env(safe-area-inset-right)) 4px max(4px, env(safe-area-inset-left)); }
+html.touch.inplay .footbar { display: none; }
+html.touch.inplay .board { padding: 2px 12px; }
+@media (orientation: portrait) {
+  html.touch.inplay .rotate {
+    display: grid; place-items: center; position: absolute; inset: 0; z-index: 5; padding: 24px;
+    background: var(--chrome); color: var(--text); text-align: center; font-weight: 700; font-size: 20px;
+  }
+  html.touch.inplay .rotate span { display: block; font-size: 54px; margin-bottom: 8px; color: var(--team0); }
+}

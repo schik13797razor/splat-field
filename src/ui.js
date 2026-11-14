@@ -1,5 +1,6 @@
 import { CFG, MARKERS, MK, TEAMS, TEAM_COLORS, setTeamColors } from './config.js';
-import { W, H, clamp, inRect } from './util.js';
+import { W, H, clamp, inRect, angleDiff } from './util.js';
+import { raycast } from './geometry.js';
 import { MAPS, BASES } from './field.js';
 import { freePoint, applyLayout, randomLayout } from './pathfinding.js';
 import { G, humanPlayer, newMatch, custom } from './state.js';
@@ -16,8 +17,18 @@ const menuEl = $('menu'), pauseEl = $('pauseMenu'), endEl = $('endMenu');
 const hopperEl = $('hopper'), squadEl = $('squad'), squadBtns = [...document.querySelectorAll('.sq')];
 const keys = Object.create(null);
 export const mouse = { sx: 0, sy: 0, wx: W / 2, wy: H / 2, down: false, inside: false };
-export const touch = { stickId: null, bx: 0, by: 0, mx: 0, my: 0, aimId: null, ax: W / 2, ay: H / 2 };
+// Touch: twin sticks. The left thumb's stick moves (mx, my); the right thumb's stick aims (adx, ady) and fires once
+// pushed past halfway. Both sticks appear wherever the thumb lands. ax/ay is the crosshair point in front of you.
+export const touch = { stickId: null, bx: 0, by: 0, mx: 0, my: 0, aimId: null, abx: 0, aby: 0, adx: 0, ady: 0,
+                       aimAng: 0, fire: false, sprint: false, ax: W / 2, ay: H / 2 };
+export const STICK = 52;                       // stick radius in screen pixels
 export const input = { source: 'mouse' };
+// Which controls are in use. The page gets a "touch" class so the CSS can show phone buttons and help.
+function setSource(s) {
+  if (input.source === s) return;
+  input.source = s;
+  document.documentElement.classList.toggle('touch', s === 'touch');
+}
 
 export function updateHuman(p, dt) {
   let mx = 0, my = 0;
@@ -28,11 +39,12 @@ export function updateHuman(p, dt) {
   mx += touch.mx; my += touch.my;
   const L = Math.hypot(mx, my);
   if (L > 1) { mx /= L; my /= L; }
-  p.sprinting = !!((keys.ShiftLeft || keys.ShiftRight) && L > 0.1 && !p.winded && p.stamina > 0);
+  if (p.winded) touch.sprint = false;            // the Sprint button switches itself off when you run out
+  p.sprinting = !!((keys.ShiftLeft || keys.ShiftRight || touch.sprint) && L > 0.1 && !p.winded && p.stamina > 0);
   const sp = speedFor(p);
   p.vx = mx * sp; p.vy = my * sp;
   aimHuman(p);
-  const wantsFire = mouse.down || keys.Space || touch.aimId !== null;
+  const wantsFire = mouse.down || keys.Space || touch.fire;
   if (wantsFire && canShoot(p)) { const m = MK(p); shoot(p, p.aim, m.spread); p.cool = m.fireDelay; }
 }
 const ORDER_TEXT = { follow: 'Squad: follow me', hold: 'Squad: hold that spot', free: 'Squad: free play' };
@@ -51,8 +63,26 @@ export function issueOrder(cmd, atSelf) {
   Sound.order();
 }
 export function aimHuman(p) {
-  const tx = input.source === 'touch' ? touch.ax : mouse.wx, ty = input.source === 'touch' ? touch.ay : mouse.wy;
-  p.aim = Math.atan2(ty - p.y, tx - p.x);
+  if (input.source === 'touch') {
+    p.aim = assistAim(p, touch.aimAng);
+    touch.ax = p.x + Math.cos(p.aim) * 170; touch.ay = p.y + Math.sin(p.aim) * 170;
+    return;
+  }
+  p.aim = Math.atan2(mouse.wy - p.y, mouse.wx - p.x);
+}
+// Light aim assist for thumbs (touch only, while the aim stick is held): if an enemy you could hit is in range and
+// within 8 degrees of where you're aiming, the aim snaps onto them. It never picks a target behind a bunker.
+const ASSIST = 8 * Math.PI / 180;
+function assistAim(p, ang) {
+  if (touch.aimId === null || p.state !== 'active') return ang;
+  const range = MK(p).range;
+  let best = ang, bd = ASSIST;
+  for (const e of G.players) {
+    if (e.team === p.team || e.state !== 'active' || Math.hypot(e.x - p.x, e.y - p.y) > range) continue;
+    const a = Math.atan2(e.y - p.y, e.x - p.x), d = Math.abs(angleDiff(ang, a));
+    if (d < bd && !raycast(p.x, p.y, e.x, e.y, CFG.ballRadius)) { bd = d; best = a; }
+  }
+  return best;
 }
 const toWorld = (sx, sy) => ({ x: (sx - view.ox) / view.s, y: (sy - view.oy) / view.s });
 function localPos(e) { const r = canvas.getBoundingClientRect(); return { sx: e.clientX - r.left, sy: e.clientY - r.top, w: r.width, h: r.height }; }
@@ -64,11 +94,13 @@ export function bindPointerInput() {
     const { sx, sy, w } = localPos(e);
     if (e.pointerType === 'touch') {
       e.preventDefault();
-      input.source = 'touch';
+      setSource('touch');
       if (sx < w * 0.45 && touch.stickId === null) { touch.stickId = e.pointerId; touch.bx = sx; touch.by = sy; touch.mx = touch.my = 0; }
-      else if (touch.aimId === null) { touch.aimId = e.pointerId; const p = toWorld(sx, sy); touch.ax = p.x; touch.ay = p.y; }
+      else if (sx >= w * 0.45 && touch.aimId === null) {
+        Object.assign(touch, { aimId: e.pointerId, abx: sx, aby: sy, adx: 0, ady: 0, fire: false });
+      }
     } else {
-      input.source = 'mouse';
+      setSource('mouse');
       if (e.button === 0) { mouse.down = true; e.preventDefault(); }
     }
   });
@@ -76,26 +108,41 @@ export function bindPointerInput() {
     const { sx, sy, w, h } = localPos(e);
     if (e.pointerType === 'touch') {
       if (e.pointerId === touch.stickId) {
-        let dx = (sx - touch.bx) / 52, dy = (sy - touch.by) / 52; const L = Math.hypot(dx, dy);
+        let dx = (sx - touch.bx) / STICK, dy = (sy - touch.by) / STICK; const L = Math.hypot(dx, dy);
         if (L > 1) { dx /= L; dy /= L; }
         touch.mx = dx; touch.my = dy;
-      } else if (e.pointerId === touch.aimId) { const p = toWorld(sx, sy); touch.ax = p.x; touch.ay = p.y; }
+      } else if (e.pointerId === touch.aimId) {
+        let dx = (sx - touch.abx) / STICK, dy = (sy - touch.aby) / STICK; const L = Math.hypot(dx, dy);
+        if (L > 1) { dx /= L; dy /= L; touch.abx = sx - dx * STICK; touch.aby = sy - dy * STICK; } // the stick follows a long drag
+        touch.adx = dx; touch.ady = dy;
+        if (L > 0.25) touch.aimAng = Math.atan2(dy, dx);
+        touch.fire = L >= 0.5;
+      }
       return;
     }
-    input.source = 'mouse';
+    setSource('mouse');
     mouse.sx = sx; mouse.sy = sy; mouse.inside = sx >= 0 && sy >= 0 && sx <= w && sy <= h;
     const p = toWorld(sx, sy); mouse.wx = p.x; mouse.wy = p.y;
   });
   function endPointer(e) {
     if (e.pointerType === 'touch') {
-      if (e.pointerId === touch.stickId) { touch.stickId = null; touch.mx = touch.my = 0; }
-      if (e.pointerId === touch.aimId) touch.aimId = null;
+      if (e.pointerId === touch.stickId) { touch.stickId = null; touch.mx = touch.my = 0; touch.sprint = false; }
+      if (e.pointerId === touch.aimId) { touch.aimId = null; touch.adx = touch.ady = 0; touch.fire = false; }
     } else if (e.button === 0 || e.type === 'pointercancel') mouse.down = false;
   }
   window.addEventListener('pointerup', endPointer);
   window.addEventListener('pointercancel', endPointer);
   canvas.addEventListener('pointerleave', e => { if (e.pointerType !== 'touch') mouse.inside = false; });
   canvas.addEventListener('contextmenu', e => e.preventDefault());
+  // Any touch anywhere (menu buttons included) switches to phone controls; a phone starts in them.
+  window.addEventListener('pointerdown', e => { if (e.pointerType === 'touch') setSource('touch'); }, { capture: true });
+  if (matchMedia('(pointer: coarse)').matches) setSource('touch');
+  // Phone buttons. pointerdown (not click) so they respond the instant a thumb lands.
+  const tap = (id, fn) => $(id).addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); if (playing()) fn(); });
+  tap('tPause', () => togglePause(true));
+  tap('tSprint', () => { touch.sprint = !touch.sprint; });
+  tap('tReload', () => { const hp = humanPlayer(); if (hp && hp.state === 'active') startReload(hp); });
+  tap('tFast', () => { G.fast = !G.fast; });
 }
 
 const playing = () => G.human && !G.paused && G.phase !== 'over';
@@ -118,7 +165,11 @@ document.querySelectorAll('.sq').forEach(b => {
   b.addEventListener('click', () => { if (playing()) issueOrder(b.dataset.cmd, true); });
 });
 window.addEventListener('keyup', e => { keys[e.code] = false; });
-function releaseInputs() { for (const k in keys) keys[k] = false; mouse.down = false; touch.stickId = touch.aimId = null; touch.mx = touch.my = 0; }
+function releaseInputs() {
+  for (const k in keys) keys[k] = false;
+  mouse.down = false;
+  Object.assign(touch, { stickId: null, aimId: null, mx: 0, my: 0, adx: 0, ady: 0, fire: false, sprint: false });
+}
 window.addEventListener('blur', () => { releaseInputs(); if (playing()) togglePause(true); });
 document.addEventListener('visibilitychange', () => { if (document.hidden && playing()) togglePause(true); });
 
@@ -239,6 +290,13 @@ export function loadMap(key) {
 }
 export function startHumanMatch() {
   Sound.init();
+  // Phones: go full screen and sideways where the browser allows it (Android does; iPhone Safari doesn't).
+  const root = document.documentElement;
+  if (input.source === 'touch' && document.fullscreenEnabled && !document.fullscreenElement && root.requestFullscreen) {
+    root.requestFullscreen({ navigationUI: 'hide' })
+      .then(() => screen.orientation && screen.orientation.lock && screen.orientation.lock('landscape'))
+      .catch(() => {});
+  }
   releaseInputs();
   menuEl.hidden = pauseEl.hidden = endEl.hidden = true;
   if (!settings.seenHelp) { settings.seenHelp = true; saveSettings(); }
@@ -375,6 +433,7 @@ for (const ev of ['pointerdown', 'keydown']) window.addEventListener(ev, () => S
 
 // scoreboard
 const hud = Object.create(null);
+const portrait = matchMedia('(orientation: portrait)');
 function setText(id, v) { if (hud[id] !== v) { hud[id] = v; $(id).textContent = v; } }
 export function updateHUD() {
   const ctf = G.mode === 'ctf', koth = G.mode === 'koth', t = Math.max(0, Math.ceil(G.time));
@@ -414,7 +473,8 @@ export function updateHUD() {
     if (hud.ammoW !== w) { hud.ammoW = w; $('ammoFill').style.width = w; }
     hopperEl.classList.toggle('reloading', reloading);
     hopperEl.classList.toggle('low', low);
-    setText('ammoHint', reloading ? 'Reloading…' : low ? 'Low paint. Press R' : 'Press R to reload');
+    const tp = input.source === 'touch';
+    setText('ammoHint', reloading ? 'Reloading…' : low ? (tp ? 'Low paint. Tap Reload' : 'Low paint. Press R') : (tp ? 'Tap Reload to refill' : 'Press R to reload'));
     const sw = `${(hp.stamina * 100).toFixed(1)}%`;
     if (hud.stamW !== sw) { hud.stamW = sw; $('stamFill').style.width = sw; }
     $('stamMeter').classList.toggle('winded', hp.winded);
@@ -422,16 +482,30 @@ export function updateHUD() {
   Sound.ambience(G.human && !G.paused && G.phase !== 'over' && !settings.muted);
   Sound.music(musicMood(), G.human && G.paused);
   Sound.crowdBed(G.human && !G.paused && G.phase !== 'over' ? (musicMood() === 'tense' ? 1.5 : 1) : 0);
+  // phones: buttons, a bigger field during your match, and a pause when the phone is held upright
+  const tp = input.source === 'touch', inPlay = G.human && G.phase !== 'over';
+  if (hud.inPlay !== inPlay) { hud.inPlay = inPlay; document.documentElement.classList.toggle('inplay', inPlay); }
+  const showPad = tp && inPlay && !G.paused;
+  $('tpad').hidden = !showPad;
+  if (showPad) {
+    const active = !!(hp && hp.state === 'active'), out = !!(hp && hp.state === 'out');
+    $('tSprint').hidden = $('tReload').hidden = !active;
+    $('tFast').hidden = !out;
+    $('tSprint').classList.toggle('on', touch.sprint);
+    $('tFast').classList.toggle('on', !!G.fast);
+    if (portrait.matches) togglePause(true);
+  }
   // squad orders
   squadEl.hidden = !(G.human && G.phase !== 'over');
   if (hud.squad !== G.squad.cmd) { hud.squad = G.squad.cmd; squadBtns.forEach(b => b.classList.toggle('on', b.dataset.cmd === G.squad.cmd)); }
   let msg = '', wash = -1;
   if (hp && G.human && G.phase !== 'over' && !G.paused) {
-    if (hp.state === 'out') msg = G.fast ? 'Fast-forward on. Press F for normal speed.' : "You're out. Press F to fast-forward.";
+    const key = (k, t) => (tp ? t : k);
+    if (hp.state === 'out') msg = G.fast ? `Fast-forward on. ${key('Press F', 'Tap ×3')} for normal speed.` : `You're out. ${key('Press F', 'Tap ×3')} to fast-forward.`;
     else if (hp.state === 'painted') { msg = inRect(hp, BASES[hp.team].wash) ? 'Washing… stay on the pad' : "You're painted. Get to your WASH pad."; wash = hp.washT / CFG.washTime; }
     else if (hp.carrying) msg = 'You have their flag. Run it home!';
-    else if (G.mode === 'koth' && onHill(hp)) msg = G.hill.contested ? 'Contested! Even numbers on the hill. Press 3 to bring your squad.'
-      : G.hill.owner === 0 ? 'Your team holds the hill. Keep it!' : 'Outnumbered on the hill! Press 3 to bring your squad.';
+    else if (G.mode === 'koth' && onHill(hp)) msg = G.hill.contested ? `Contested! Even numbers on the hill. ${key('Press 3', 'Tap Attack')} to bring your squad.`
+      : G.hill.owner === 0 ? 'Your team holds the hill. Keep it!' : `Outnumbered on the hill! ${key('Press 3', 'Tap Attack')} to bring your squad.`;
   }
   statusEl.hidden = !msg;
   if (msg) {
