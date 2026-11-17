@@ -50,7 +50,17 @@ Code plans, builds, and tests a game. `HANDOFF.md` has the full history and open
   which made shots hard to line up). Light aim assist, touch only: an enemy you could hit within 8° of your aim
   and in range pulls the aim onto them. Buttons: Sprint (toggle; stops when the move thumb lifts or you're winded),
   Reload, Pause, ×3 fast-forward when out. Upright phone pauses with a "turn sideways" screen.
-- Skipped by Jeff's choice for now: "enemy paint slows you", local 2-player, online multiplayer.
+- **Medals** (16, each earned once, saved in this browser): First Splat, Hat Trick (3 hits in 5 s), On Fire (5 hits in
+  one life), Clean Sheet (win unpainted), Flag Runner, Grand Slam (all 3 flags yourself), King's Seat (30 hill points
+  while on the hill), Last One Standing, Clean Sweep (LTS 3-0), Comeback (win after 2 flags/2 rounds/30 points
+  behind), Hard Hitter, Field Tour (win on all 5 fields; the daily field counts as Random), Triple Threat (all modes),
+  On a Roll (5 wins in a row), Century (100 career hits), Daily Player.
+- **Daily challenge** (same for everyone on a date, changes at local midnight): modes take turns (CTF, LTS, KOTH);
+  skill (25% Easy, 45% Normal, 30% Hard), your marker and a field seed come from the date. About every other day has
+  a twist for everyone, bots included: Pump Day, Scatter Day (everyone carries it), Speed Day (+20%), Long Wash (6 s;
+  never on LTS). Score = 10 per hit you land + 100 per flag/round your team wins (2 per hill point) + 300 win / 100
+  draw. Unlimited tries, best of the day counts; streak = days in a row with a finished daily.
+- Skipped by Jeff's choice for now: share card, "enemy paint slows you", local 2-player, online multiplayer.
 
 ## Commands
 
@@ -61,7 +71,7 @@ Code plans, builds, and tests a game. `HANDOFF.md` has the full history and open
   (`.github/workflows/deploy.yml`), but only after `npm test` passes on GitHub; a failing test leaves the live site on
   the last good version. Pushing `master` is a public release: push only when Jeff asks.
 - `npm test` (`tests/smoke.js`, about 15 s): loads the game in headless Chromium, plays a real match through the menu
-  and controls, finishes it and checks the end screen and saved stats, plays on an emulated phone (sticks and buttons), sweeps every
+  and controls, finishes it and checks the end screen and saved stats, starts and leaves a daily challenge, plays on an emulated phone (sticks and buttons), sweeps every
   field × mode with bots, and fails on any page error or `console.error` (failed Google
   Fonts requests are ignored). Run it after every change.
 - `npm run sim` (`tests/sim.js`): bot-only balance batches, printed as one table per field × skill. Defaults to 8
@@ -147,6 +157,11 @@ and paints to it during your own matches, and `showEnd()` records the finished m
   during your match; CSS uses them to show `.touchonly`/hide `.keyonly` help, the phone buttons (`#tpad`), and the
   bigger phone layout. The `touch` object holds both sticks; `aimHuman` applies the assist. Touch never runs in
   bot-only matches.
+- **Medals and daily** (`medals.js`, `daily.js`; leaf modules like `stats.js`): `medalsFrame(G, hp, onHill)` runs from
+  `updateHUD` in your matches and `medalsEnd()` from `showEnd`; both only read the match. `dailyFor(dayNumber())`
+  picks today's challenge with its own generator. `beginMatch(daily)` in `ui.js` starts it: `randomLayout(fieldSeed)`
+  (`G.mapKey = 'daily'`), the twist changes `CFG` numbers or every player's marker, and `clearTwist()` restores
+  them at the start of every match and on returning to the menu. Reset stats also resets medals and the daily streak.
 - **Settings** persist in localStorage under `splatfield.settings`. Customize choices are copied into `custom`
   (`state.js`), which `makePlayer` (names) and `drawPlayer` (jersey, mask) read; team colors recolor the shared
   `TEAMS` objects in place (`setTeamColors`) and the CSS `--team0`/`--team1` variables.

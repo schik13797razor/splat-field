@@ -6,6 +6,8 @@ import { freePoint, applyLayout, randomLayout } from './pathfinding.js';
 import { G, humanPlayer, newMatch, custom } from './state.js';
 import { speedFor, canShoot, shoot, startReload, onHill, isHittable } from './rules.js';
 import { career, MODES, SKILLS, resetCareer, startMatchStats, recordMatch, matchesPlayed, matchesWon, clockText } from './stats.js';
+import { MEDALS, medals, earnedCount, resetMedals, startMatchMedals, medalsFrame, medalsEnd, award } from './medals.js';
+import { dayNumber, dailyFor, dailyScore, dailyStatus, recordDaily, resetDaily, TWISTS } from './daily.js';
 const MODE_NAMES = { ctf: 'Capture the Flag', lts: 'Last Team Standing', koth: 'King of the Hill' };
 import { canvas, view, drawField, clearPaint, drawPreview } from './drawing.js';
 import { Sound } from './sound.js';
@@ -302,7 +304,18 @@ export function loadMap(key) {
   G.mapKey = key; G.mapName = def.name;
   drawField(); clearPaint();
 }
-export function startHumanMatch() {
+export function startHumanMatch() { beginMatch(null); }
+// The daily challenge you're playing (null in a normal match), so Restart and Play again replay it.
+const session = { daily: null };
+// Twists change a few config numbers for one daily match; clearTwist() puts them back.
+const BASE = { playerSpeed: CFG.playerSpeed, botSpeed: CFG.botSpeed, washTime: CFG.washTime };
+function applyTwist(t) {
+  if (t === 'speed') { CFG.playerSpeed = BASE.playerSpeed * 1.2; CFG.botSpeed = BASE.botSpeed * 1.2; }
+  if (t === 'wash') CFG.washTime = 6;
+}
+function clearTwist() { Object.assign(CFG, BASE); }
+const cap = s => s[0].toUpperCase() + s.slice(1);
+function beginMatch(daily) {
   Sound.init();
   // Phones: go full screen and sideways where the browser allows it (Android does; iPhone Safari doesn't).
   const root = document.documentElement;
@@ -314,9 +327,22 @@ export function startHumanMatch() {
   releaseInputs();
   menuEl.hidden = pauseEl.hidden = endEl.hidden = true;
   if (!settings.seenHelp) { settings.seenHelp = true; saveSettings(); }
-  startMatchStats();
-  if (settings.map === 'random' || G.mapKey !== settings.map) loadMap(settings.map); // a fresh random field every match
-  newMatch(settings.mode, settings.diff, true, settings.marker);
+  startMatchStats(); startMatchMedals(); matchMedals.length = 0;
+  clearTwist();
+  session.daily = daily;
+  if (daily) {
+    // today's field: the Random generator with today's seed, so everyone gets the same one
+    randomLayout(daily.fieldSeed); G.mapKey = 'daily'; G.mapName = `Daily field #${daily.n}`;
+    drawField(); clearPaint();
+    applyTwist(daily.twist);
+    newMatch(daily.mode, daily.diff, true, daily.marker);
+    if (daily.twist === 'pump' || daily.twist === 'scatter') for (const p of G.players) { p.marker = daily.twist; p.ammo = MARKERS[daily.twist].hopper; }
+    G.countSub = `Daily #${daily.n} · ${daily.twist ? TWISTS[daily.twist].name : MODE_NAMES[daily.mode]}`;
+    banner('3', G.countSub, 1.1);
+  } else {
+    if (settings.map === 'random' || G.mapKey !== settings.map) loadMap(settings.map); // a fresh random field every match
+    newMatch(settings.mode, settings.diff, true, settings.marker);
+  }
   stage.classList.add('playing');
   if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
 }
@@ -329,6 +355,7 @@ function toMenu() {
   releaseInputs();
   pauseEl.hidden = endEl.hidden = true; statusEl.hidden = true; bannerEl.hidden = true;
   stage.classList.remove('playing');
+  clearTwist(); session.daily = null; renderDaily();
   G.attractNext = 'ctf';
   startDemo();
   menuEl.hidden = false;
@@ -372,8 +399,28 @@ export function showEnd() {
         `${res.rec.won} won of ${res.rec.played}` + (res.winStreak > 1 ? ` · ${res.winStreak} wins in a row` : '');
       box.append(line);
     }
+    const modesWon = MODES.filter(mo => SKILLS.some(sk => career.record[mo][sk].won > 0)).length;
+    if (session.daily) {                                   // daily challenge: score, best today, streak
+      const d = session.daily, score = dailyScore({ mode: G.mode, hits: hp.stats.hits, won: w === 0, draw: w < 0,
+        objective: ctf ? G.caps[0] : koth ? G.points[0] : G.roundWins[0] });
+      const st = recordDaily(d.n, score);
+      const line = document.createElement('p'), tag = document.createElement('b');
+      tag.className = 'newbest dailytag'; tag.textContent = st.newBest ? 'Daily best!' : 'Daily';
+      line.append(tag, ` Daily #${d.n} score: ${score}` + (st.newBest ? '' : ` (best today ${st.best})`) +
+        ` · streak ${st.streak} day${st.streak === 1 ? '' : 's'}`);
+      box.prepend(line);
+      const dm = award('daily'); if (dm) matchMedals.push(dm);
+    }
+    matchMedals.push(...medalsEnd({ won: w === 0, mode: G.mode, diff: G.diff, mapKey: G.mapKey === 'daily' ? 'random' : G.mapKey, painted: hp.stats.painted,
+                                    roundWins: G.roundWins, careerHits: career.totals.hits, winStreak: res.winStreak, modesWon }));
+    for (const d of matchMedals) {
+      const line = document.createElement('p'), tag = document.createElement('b');
+      tag.className = 'newbest medal'; tag.textContent = 'Medal';
+      line.append(tag, ` ${d.name}: ${d.how}`);
+      box.prepend(line);
+    }
     box.hidden = !box.childElementCount;
-    renderStats();
+    renderStats(); renderMedals(); renderDaily();
   }
   const body = $('statsBody'); body.textContent = '';
   const top = Math.max(...G.players.map(p => p.stats.hits));
@@ -421,14 +468,57 @@ function renderStats() {
 }
 renderStats();
 $('resetStats').addEventListener('click', () => {
-  if (confirm('Reset all your stats and personal bests? This can’t be undone.')) { resetCareer(); renderStats(); }
+  if (confirm('Reset all your stats, personal bests, medals and daily streak? This can’t be undone.')) { resetCareer(); resetMedals(); resetDaily(); renderStats(); renderMedals(); renderDaily(); }
 });
+
+// Medals: the menu list, and a toast when you earn one during a match (one at a time if several arrive together)
+const matchMedals = [], toastQueue = [];
+function renderMedals() {
+  const n = earnedCount();
+  $('medalsHint').textContent = `${n} of ${MEDALS.length} earned`;
+  const grid = $('medalGrid'); grid.textContent = '';
+  for (const d of MEDALS) {
+    const when = medals.earned[d.id], card = document.createElement('div'), badge = document.createElement('span');
+    const name = document.createElement('b'), how = document.createElement('span');
+    card.className = 'medalcard' + (when ? ' got' : ''); badge.className = 'badge'; badge.setAttribute('aria-hidden', 'true');
+    name.textContent = d.name; how.textContent = d.how + (when ? ` Earned ${when}.` : '');
+    card.title = when ? `Earned ${when}` : 'Not earned yet';
+    card.append(badge, name, how); grid.append(card);
+  }
+}
+renderMedals();
+// The daily challenge card on the menu: today's setup, your best today, and your streak.
+function renderDaily() {
+  const n = dayNumber(), d = dailyFor(n), st = dailyStatus(n);
+  $('dailyTitle').textContent = `#${n}`;
+  $('dailyDesc').textContent = `${MODE_NAMES[d.mode]} · ${cap(d.diff)} bots · ${MARKERS[d.marker].name} · a new field`;
+  $('dailyTwist').hidden = !d.twist;
+  if (d.twist) $('dailyTwist').textContent = `Twist: ${TWISTS[d.twist].name}. ${TWISTS[d.twist].how}`;
+  $('dailyStatus').textContent = (st.tries ? `Best today: ${st.best} (${st.tries} ${st.tries === 1 ? 'try' : 'tries'})` : 'Not played yet today') +
+    ` · Streak: ${st.streak} day${st.streak === 1 ? '' : 's'}`;
+  $('dailyBtn').textContent = st.tries ? 'Play it again' : "Play today's challenge";
+}
+renderDaily();
+function showMedalToast(d) {
+  toastQueue.push(d);
+  if (toastQueue.length === 1) nextToast();
+}
+function nextToast() {
+  const d = toastQueue[0], el = $('medalToast');
+  if (!d) { el.hidden = true; return; }
+  $('medalToastName').textContent = d.name;
+  el.hidden = false; el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
+  Sound.medal();
+  setTimeout(() => { toastQueue.shift(); nextToast(); }, 2600);
+}
 
 $('playBtn').addEventListener('click', startHumanMatch);
 $('resumeBtn').addEventListener('click', () => togglePause(false));
-$('restartBtn').addEventListener('click', startHumanMatch);
+const replay = () => beginMatch(session.daily ? dailyFor(dayNumber()) : null);
+$('restartBtn').addEventListener('click', replay);
 $('quitBtn').addEventListener('click', toMenu);
-$('againBtn').addEventListener('click', startHumanMatch);
+$('againBtn').addEventListener('click', replay);
+$('dailyBtn').addEventListener('click', () => beginMatch(dailyFor(dayNumber())));
 $('menuBtn').addEventListener('click', toMenu);
 $('pauseBtn').addEventListener('click', () => { if (G.human) togglePause(); });
 $('soundBtn').addEventListener('click', () => { Sound.init(); toggleMute(); });
@@ -474,6 +564,8 @@ export function updateHUD() {
     }
   }
   const hp = humanPlayer();
+  // medals earned this frame (your matches only): a toast and a chime
+  if (G.human) for (const d of medalsFrame(G, hp, onHill)) { matchMedals.push(d); showMedalToast(d); }
   // hopper
   const showHop = !!(hp && G.human && hp.state === 'active' && G.phase !== 'over' && !G.paused);
   hopperEl.hidden = !showHop;

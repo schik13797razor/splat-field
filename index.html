@@ -34,6 +34,7 @@
     <canvas id="game" aria-label="Paintball field"></canvas>
     <div class="banner" id="banner" hidden><span class="bsub" id="bannerSub"></span><span class="bmain" id="bannerMain"></span></div>
     <ol class="feed" id="feed" aria-live="polite"></ol>
+    <div class="medaltoast" id="medalToast" hidden role="status"><span class="badge" aria-hidden="true"></span><span><small>Medal earned</small><b id="medalToastName"></b></span></div>
     <div class="tpad" id="tpad" hidden>
       <button class="tbtn tpause" id="tPause" type="button" aria-label="Pause"><span aria-hidden="true">❚❚</span></button>
       <button class="tbtn tsprint" id="tSprint" type="button">Sprint</button>
@@ -115,6 +116,15 @@
           </div>
         </fieldset>
         <button class="btn primary" id="playBtn" type="button">Play</button>
+        <div class="daily" id="dailyCard">
+          <div class="dtext">
+            <p class="dhead"><span class="lbl">Daily challenge</span> <b id="dailyTitle">#1</b></p>
+            <p id="dailyDesc"></p>
+            <p class="dtwist" id="dailyTwist" hidden></p>
+            <p class="fhint" id="dailyStatus"></p>
+          </div>
+          <button class="btn" id="dailyBtn" type="button">Play today's challenge</button>
+        </div>
         <details class="custom" id="howto">
           <summary>How to play<span class="fhint">Controls and the basics</span></summary>
           <div class="custgrid">
@@ -174,6 +184,12 @@
             </fieldset>
             <p class="fhint">Saved in this browser. Only your own finished matches count.
               <button class="linkbtn" id="resetStats" type="button">Reset stats</button></p>
+          </div>
+        </details>
+        <details class="custom" id="medalsPanel">
+          <summary>Medals<span class="fhint" id="medalsHint">0 earned</span></summary>
+          <div class="custgrid">
+            <div class="medalgrid" id="medalGrid"></div>
           </div>
         </details>
         <details class="custom" id="customize">

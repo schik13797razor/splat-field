@@ -59,6 +59,16 @@ try {
   check(saved && saved.record.ctf.normal.played === 1, 'finished match shows the end screen and is saved to stats');
   await page.click('#menuBtn');
   check((await page.textContent('#statsHint')).startsWith('1 played'), 'menu stats show the match');
+  check(await page.locator('#medalGrid .medalcard').count() === 16 && /of 16 earned/.test(await page.textContent('#medalsHint')), 'menu shows the 16 medals');
+
+  // Daily challenge: starts today's match on its own field, and leaving puts any twist numbers back.
+  const base = await page.evaluate(() => ({ speed: window.__splat.CFG.playerSpeed, wash: window.__splat.CFG.washTime }));
+  await page.click('#dailyBtn');
+  const daily = await page.evaluate(() => ({ field: window.__splat.G.mapName, human: window.__splat.G.human }));
+  check(daily.human && /^Daily field #\d+$/.test(daily.field), `daily challenge starts on today's field (${daily.field})`);
+  await page.keyboard.press('Escape'); await page.click('#quitBtn');
+  const after = await page.evaluate(() => ({ speed: window.__splat.CFG.playerSpeed, wash: window.__splat.CFG.washTime }));
+  check(after.speed === base.speed && after.wash === base.wash, 'leaving the daily puts the normal rules back');
 
   // 3. A phone held sideways: touch controls (twin sticks and buttons) in a real match.
   const phone = await browser.newPage({ viewport: { width: 740, height: 360 }, hasTouch: true, isMobile: true });

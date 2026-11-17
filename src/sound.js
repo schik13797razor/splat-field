@@ -309,6 +309,7 @@ export const Sound = (() => {
     beep(hi) { if (!ok(1)) return; tn(now(), { f: hi ? 880 : 520, dur: hi ? 0.28 : 0.12, vol: 0.1, type: 'square' }); },
     reload() { if (!ok(1)) return; const t = now(); nz(t, { f: 1300, q: 5, dur: 0.05, vol: 0.13 }); nz(t + 0.16, { f: 950, q: 5, dur: 0.05, vol: 0.11 }); },
     reloaded() { if (!ok(1)) return; const t = now(); nz(t, { f: 2300, q: 6, dur: 0.04, vol: 0.15 }); tn(t, { f: 520, dur: 0.06, vol: 0.05, type: 'square' }); },
+    medal() { if (!ok(1)) return; const t = now(); [784, 988, 1175, 1568].forEach((f, i) => tn(t + i * 0.07, { f, dur: 0.3, vol: 0.07, type: 'triangle' })); },
     order() { if (!ok(1)) return; const t = now(); tn(t, { f: 700, dur: 0.07, vol: 0.07, type: 'triangle' }); tn(t + 0.07, { f: 940, dur: 0.09, vol: 0.07, type: 'triangle' }); },
   };
 })();

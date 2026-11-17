@@ -165,6 +165,11 @@ After-fix table (`npm run sim -- --matches=20`): see CLAUDE.md. Blue won 123/240
   Side effect: bot defenders (both teams) are weaker, so CTF Easy/Normal matches are ~25-40% shorter.
 - KOTH bots first sat behind the center bunker on both sides and the hill stayed contested ~70% of the time; they now
   go around and clear enemies off a contested hill (contested ~29%).
+- Medals and daily challenge (2026-11-17): 16 one-time medals (menu fold-out, toast in the match, end screen) and a
+  daily challenge (same mode/skill/marker/new field for everyone each day, twists on about half the days: Pump Day,
+  Scatter Day, Speed Day, Long Wash; best-of-day score and a streak). Jeff chose single unlocks, unlimited daily
+  tries with the best counting, and twists; he passed on a share card. Field check: 365 upcoming daily fields, none
+  fell back to Snake Line.
 - Phone controls (2026-11-13): twin sticks (right stick aims; auto-fire when the dotted aim line is on an enemy), light 8° aim assist on touch only,
   Sprint/Reload/Pause/×3 buttons, bigger field during play (no bottom bar), full screen on Android, a "turn sideways"
   pause screen. `npm test` now also plays on an emulated phone. Not yet tried with real thumbs at the time of commit.
